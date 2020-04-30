@@ -96,6 +96,7 @@ create tables and sequences according to db_specs.txt in design folder to load u
 - run it
 
 > cd [your_app_directory]/Build
+
 > ./Management
 
 [then its just CLI]
