@@ -1,0 +1,152 @@
+Tables to be created: 
+------------------
+(e.g. 
+table name
+
+coloumn1 - type
+coloumn2 - type)
+
+
+rate:
+
+rate - double
+time - int
+
+_________________________
+
+ACCOUNT:
+
+accountno - long int
+type - char 11
+CUSTOMERID - long int
+BALANCE - double
+status - int
+
+_________________________
+
+atm:
+
+atmID  -- long int 
+location - char 40
+balance - double
+region - char 40
+thresholdValue - double - 10000
+status - char 9
+
+________________________________
+
+BILL:
+
+BIILID - int
+CUSTOMERID - long int
+type - char 15
+BILLAMOUNT - float
+date -- sysdate
+REFID -- BILLREFID seq
+
+_______________________
+
+branchAccount
+
+AccountNumber -- long int
+branchid - long int
+thresholdValue - double
+balance - double
+status - int
+
+_____________________________
+
+Branch
+
+branchid -- long int
+location - char 30
+region - char 10
+accountno - int - 0
+branchmanager - long int
+status - int
+
+__________________________
+
+CUSTOMER
+
+customerID - long int
+NAME - char 31
+DOB - char 30
+GENDER - char
+ADDRESS - char 31
+status - int
+ATMSTATUS - char 30
+
+____________________________
+
+employee
+
+employeeid - long int
+ENAME - char 31
+EGENDER	- char
+EADDRESS - char 31
+EDESIGNATION - 31
+ESTATUS - int
+DOB - dd-mm-yyyy
+
+_____________________________
+
+fixedaccount
+
+accountno - long int
+DEPOSITAMT - double
+years - int
+macturitybalance - double
+CURRENTDATE - sysdate
+
+__________________________
+
+LOGIN:
+
+USERNAME - long int
+PASSWORD - char 11
+SEQANS1 - char 16
+SEQANS2 - char 16
+
+______________________
+
+REQUEST
+
+requestid - long int
+accountno - long int
+type - char 25
+reqdate - sysdate
+
+________________________
+
+TRANSACTION:
+
+transactionID  -- long int
+accountno - long int
+transactiondate - dd-mm-yyyy
+type - char 10
+amount - double
+
+
+
+
+
+Sequences to be created: (all 6 digit)
+----------------------------
+
+ATM_ID 
+
+transactionid 
+
+requestid 
+
+accountno 
+
+employeeid 
+
+SEQ_CUSTOMERID 
+
+branchid 
+
+AccountNumber 
+
