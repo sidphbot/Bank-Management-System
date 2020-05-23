@@ -1,0 +1,2 @@
+SELECT atmID,location,balance,region,thresholdValue,status INTO   :l_atmID,:l_atmlocation,:l_atmbalance,:l_atmregion,:l_atmthresholdValue,:l_atmstatus  FROM atm
+SELECT atmID INTO :l_atmid FROM atm

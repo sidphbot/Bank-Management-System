@@ -1,0 +1,95 @@
+SELECT type INTO :h_typestat FROM ACCOUNT
+SELECT Balance INTO :h_balance FROM ACCOUNT
+SELECT type INTO :h_typestat FROM ACCOUNT
+SELECT ATM_ID.currval INTO :h_atmID from dual;
+SELECT status INTO :h_status FROM atm
+SELECT atmID,location,balance,region,thresholdValue,status INTO  :h_atmID,:h_atmlocation,:h_atmbalance,:h_atmregion,:h_atmthresholdValue,:h_atmstatus  FROM atm
+SELECT status INTO :h_status FROM atm
+SELECT atmID INTO :l_atmid FROM atm
+SELECT accountno.currval INTO :h_accno from dual;
+SELECT accountno.currval INTO :h_accno from dual;
+SELECT accountno.currval INTO :h_accno from dual;
+SELECT rate INTO :h_rate FROM rate
+SELECT accountno.currval INTO :h_accno from dual;
+SELECT transactionid.nextval into :h_tid from dual;
+SELECT billrefid.currval into :h_RefId from dual;
+SELECT BIILID , CUSTOMERID , BILLAMOUNT into :h_BillId , :h_accountno, :h_Amount FROM BILL
+SELECT transactionid.nextval into :h_tid from dual;
+SELECT billrefid.currval into :h_RefId from dual;
+SELECT BIILID , CUSTOMERID , BILLAMOUNT into :h_BillId , :h_accountno, :h_Amount FROM BILL
+SELECT transactionid.nextval into :h_tid from dual;
+SELECT billrefid.currval into :h_RefId from dual;
+SELECT BIILID , CUSTOMERID , BILLAMOUNT into :h_BillId , :h_accountno, :h_Amount FROM BILL
+SELECT AccountNumber.currval INTO :h_accountNumber FROM DUAL
+SELECT AccountNumber.CurrVal INTO :h_accountNumber FROM DUAL
+SELECT   branchid, thresholdValue, balance INTO  :h_branchId, :h_branchThreshold, :h_currentBalance,:h_status  FROM branchAccount
+SELECT count(1) INTO :h_count FROM branchAccount
+SELECT BALANCE INTO :h_bal FROM account
+SELECT balance into :h_balance from account where accountno=:h_accountno;
+SELECT status INTO :h_tstatus from account where accountno=:h_accountno;
+SELECT type INTO :h_typestat FROM ACCOUNT
+SELECT SYSDATE INTO :h_date from dual;
+SELECT SYSDATE INTO :h_date from dual;
+SELECT balance into :h_balance from account where accountno=:h_accountno;
+SELECT status INTO :h_tstatus from account where accountno=:h_accountno;
+SELECT type INTO :h_typestat FROM ACCOUNT
+SELECT SYSDATE INTO :h_date from dual;
+SELECT SYSDATE INTO :h_date from dual;
+SELECT balance INTO :h_balance FROM ACCOUNT
+SELECT type INTO :h_typestat FROM ACCOUNT
+SELECT status INTO :h_tstatus from account where accountno=:h_accountno;
+SELECT balance INTO :h_balance FROM ACCOUNT
+SELECT (sysdate - currentdate) days_between into :h_days from fixedaccount where accountno=:h_accountno;
+SELECT SYSDATE INTO :h_date from dual;
+SELECT CURRENTDATE,years INTO :h_opendate,:h_period from fixedaccount where accountno=:h_accountno;
+SELECT macturitybalance into :h_balance from fixedaccount where accountno=:h_accountno;
+SELECT balance INTO :h_balance FROM ACCOUNT
+SELECT type INTO :h_typestat FROM ACCOUNT
+SELECT status INTO :h_tstatus from account where accountno=:h_accountno;
+SELECT balance INTO :h_balance FROM ACCOUNT
+SELECT SYSDATE INTO :h_date from dual;
+SELECT  location, region, accountno, branchmanager INTO  :h_branchLocation, :h_branchRegion, :h_accountNo, :h_branchBM FROM branch
+SELECT atmstatus into :h_stat from customer WHERE CustomerID=:h_CustomerID;
+SELECT requestid.currval into :h_requestID from dual;
+SELECT count(1) INTO :h_Count from customer where customerID=:h_CustomerID AND status=1;
+SELECT CUSTOMERID , NAME , DOB , GENDER , ADDRESS , ATMSTATUS INTO :h_CustomerID , :h_Name , :h_dob , :h_Gender , :h_Address, :h_AtmStatus
+SELECT count(1) INTO :h_Count from account where accountno=:h_accountno;
+SELECT CUSTOMERID INTO :h_CustomerID from ACCOUNT WHERE accountno=:h_accountno;
+SELECT NAME , DOB , GENDER , ADDRESS INTO :h_Name , :h_dob , :h_Gender , :h_Address FROM CUSTOMER
+SELECT BALANCE INTO :h_balance from account where accountno=:h_accountno;
+SELECT type INTO :h_typestat FROM ACCOUNT
+SELECT count(1) INTO :h_Count from account where accountno=:h_accountno;
+SELECT CUSTOMERID INTO :h_CustomerID from ACCOUNT WHERE accountno=:h_accountno;
+SELECT NAME , DOB , GENDER , ADDRESS INTO :h_Name , :h_dob , :h_Gender , :h_Address FROM CUSTOMER
+SELECT BALANCE INTO :h_balance from account where accountno=:h_accountno;
+SELECT type INTO :h_typestat FROM ACCOUNT
+SELECT COUNT(1) INTO :l_limit FROM account
+SELECT COUNT(1) INTO :l_limit FROM request
+SELECT balance INTO :h_balance FROM account
+SELECT type INTO :l_type1 FROM account
+SELECT requestid,accountno,type,reqdate INTO :h_id,:h_account,:h_type,:h_dates FROM request
+SELECT COUNT(1) INTO :l_limit FROM account
+SELECT accountno,balance,type,customerid INTO :h_acc,:h_bal,:h_type,:h_customerid FROM account
+SELECT STATUS INTO :h_Status FROM CUSTOMER
+SELECT NAME , DOB , GENDER , ADDRESS , ATMSTATUS INTO  :h_Name , :h_dob , :h_Gender , :h_Address, :h_AtmStatus
+SELECT STATUS INTO :h_Status FROM CUSTOMER
+SELECT STATUS INTO :h_Status FROM CUSTOMER
+SELECT STATUS INTO :h_Status FROM CUSTOMER
+SELECT SEQ_CUSTOMERID.currval into :h_Customer_Id from dual;
+SELECT CUSTOMERID , NAME , DOB , ADDRESS , ATMSTATUS  INTO :h_CustomerID , :h_Name , :h_dob , :h_Address, :h_AtmStatus
+SELECT STATUS INTO :h_Status FROM CUSTOMER
+SELECT NAME , DOB , GENDER , ADDRESS , ATMSTATUS INTO  :h_Name , :h_dob , :h_Gender , :h_Address, :h_AtmStatus
+SELECT count(1) INTO :h_Count from customer where customerID=:h_CustomerID AND status=1;
+SELECT CUSTOMERID , NAME , DOB , GENDER , ADDRESS , ATMSTATUS INTO :h_CustomerID , :h_Name , :h_dob , :h_Gender , :h_Address, :h_AtmStatus
+SELECT COUNT(1) INTO :l_limit FROM employee
+SELECT COUNT(1) INTO :l_limit FROM branch
+SELECT branchid.CurrVal INTO :h_branchID FROM DUAL
+SELECT count(1) INTO :h_count FROM branch
+SELECT count(1) into :h_count from LOGIN where USERNAME = :h_username and PASSWORD = :h_password;
+SELECT (SYSDATE-to_date(:h_employeeDOB,'dd-mm-yyyy'))/365 INTO :h_flag FROM DUAL
+SELECT employeeid.CurrVal INTO :h_employeeId FROM DUAL
+SELECT ENAME,to_char(DOB,'dd-mm-yyyy'),EGENDER,EADDRESS,EDESIGNATION,ESTATUS INTO :h_employeeName, :h_employeeDOB, :h_employeeGender, :h_employeeAddress, :h_employeeDesignation, :h_employeeStatus FROM employee
+SELECT COUNT(1) INTO :h_count FROM employee
+SELECT accountno,type,CUSTOMERID,BALANCE,status INTO :h_accno,:h_acctype,:h_custid,:h_accbalance,:h_status FROM 
+SELECT t.transactionID ,account.accountno,to_char(t.transactiondate,'dd-mm-yyyy'),t.type,t.amount FROM transaction
+SELECT atmid,location,balance,region,thresholdvalue,status from atm ;

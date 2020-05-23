@@ -1,0 +1,202 @@
+#include<string.h>
+#include</opt/oracle/clinet64/instantclient_19_5/sdk/include/sqlca.h>
+#include<iostream>
+using namespace std;
+
+#include "../Include/Bank.h"
+
+
+int Bank::addATMAccount(ATM &p_atmobj)
+ {
+    EXEC SQL BEGIN DECLARE SECTION;
+    //long int h_atmID;
+    char h_atmLocation[30];
+    double h_atmBalance;
+    char h_atmRegion[20];
+    double h_atmThreshold;
+    char h_atmStatus[10];
+    EXEC SQL END DECLARE SECTION;
+
+    //h_atmID= p_atmobj.m_getAtmid();
+    strcpy(h_atmLocation,p_atmobj.m_getAtmLoc().c_str());
+    h_atmBalance=p_atmobj.m_getAtmBalance();    
+    strcpy(h_atmRegion,p_atmobj.m_getAtmRegion().c_str());
+    h_atmThreshold=p_atmobj.m_getAtmThresholdValue();
+    strcpy(h_atmStatus,p_atmobj.m_getatmstatus().c_str());
+     
+
+    EXEC SQL INSERT INTO atm VALUES (1000,:h_atmLocation,:h_atmBalance,:h_atmRegion,:h_atmThreshold,:h_atmStatus);
+
+
+
+   if(sqlca.sqlcode==0)
+    {
+      cout<<"in";
+      EXEC SQL COMMIT;
+      return 1;
+    }
+    else
+      cout<<"i'm out";
+      return 0;
+
+}
+
+
+
+int Bank::dbviewATM(long int p_atmID)
+{
+   EXEC SQL BEGIN DECLARE SECTION;
+      long int h_atmID;
+      long int l_atmID;
+      char l_atmlocation[40];
+      double l_atmbalance;
+      char l_atmregion[40];
+      double l_atmthresholdValue;
+      char l_atmstatus[9];
+   EXEC SQL END DECLARE SECTION;
+        h_atmID=p_atmID;
+
+       int l_idstatus=findAtmId(h_atmID);
+      if(l_idstatus==0)
+         return 0;
+    //  h_atmID=p_atmID;
+     EXEC SQL SELECT atmID,location,balance,region,thresholdValue,status INTO   :l_atmID,:l_atmlocation,:l_atmbalance,:l_atmregion,:l_atmthresholdValue,:l_atmstatus  FROM atm WHERE atmID=:h_atmID;
+
+cout<<l_atmlocation;
+//<<"\t"<<l_atmlocation<<"\t"<<l_atmbalance<<"\t"<<l_atmregion<<"\t"<<l_atmthresholdValue<<"\t"<<l_atmstatus<<endl;
+
+if(sqlca.sqlcode==0)
+{
+    EXEC SQL COMMIT;
+     return 1;
+   }else
+          
+      return 0;
+}
+
+
+
+int Bank::dbcloseATM(long int p_atmID)
+{
+   EXEC SQL BEGIN DECLARE SECTION;
+      long int h_atmID;
+   EXEC SQL END DECLARE SECTION;
+       h_atmID=p_atmID;
+       int l_idstatus=findAtmId(h_atmID);
+      if(l_idstatus==0)
+         return 0;
+     
+     EXEC SQL UPDATE atm SET status='inactive' WHERE atmID=:h_atmID;
+      cout<<"\n Updated Successfully";
+if(sqlca.sqlcode==0)
+{
+    EXEC SQL COMMIT;
+     return 1;
+  } else
+     return 0;
+}
+
+
+
+
+
+
+
+
+
+int Bank:: findAtmId(long int p_atmid)
+{
+     EXEC SQL BEGIN DECLARE SECTION;
+         long int l_atmid=0;
+       //  long int p_atmid;
+         long int h_atmid;
+        EXEC SQL END DECLARE SECTION;
+        h_atmid=p_atmid;
+        EXEC SQL SELECT atmID INTO :l_atmid FROM atm WHERE atmID= :h_atmid;
+       if(l_atmid==0)
+         return 0;
+       else
+         return 1;
+}
+
+
+
+
+void Bank::dbConnect()
+{
+EXEC SQL BEGIN DECLARE SECTION;
+char h_hostName[14]="BMS@XE";
+char h_password[8]="abc123";
+
+EXEC SQL END DECLARE SECTION;
+
+EXEC SQL CONNECT :h_hostName IDENTIFIED BY :h_password;
+}
+
+void Bank::disconnect()
+{
+EXEC SQL COMMIT WORK RELEASE;
+}
+vector<ATM> Bank::ViewAllAtm()
+{
+    EXEC SQL BEGIN DECLARE SECTION;
+
+      long int h_atmID;
+      char h_atmlocation[40];
+      double h_atmbalance;
+      char h_atmregion[40];
+      double h_atmthresholdValue;
+      char h_atmstatus[9];
+
+    EXEC SQL END DECLARE SECTION;
+
+    vector<ATM> Atm_records;
+    EXEC SQL DECLARE mycursor13 CURSOR for SELECT * FROM atm WHERE STATUS="active";
+    EXEC SQL OPEN mycursor13;
+    if(sqlca.sqlcode <0)
+    {
+        EXEC SQL CLOSE mycursor13;
+        EXEC SQL COMMIT ;
+        return Atm_records ;
+    }
+    if(sqlca.sqlcode!=0)
+    {
+       EXEC SQL CLOSE mycursor13;
+       EXEC SQL COMMIT ;
+       return Atm_records;
+
+    }
+    else
+    {
+       for(;;)
+       {
+
+             h_atmID=0;
+      strcpy(h_atmlocation," ");
+       h_atmbalance=0.0;
+      strcpy(h_atmregion," ");
+      h_atmthresholdValue=0.0;
+      strcpy(char h_atmstatus," ");
+
+
+
+            EXEC SQL WHENEVER NOT FOUND DO break;
+            EXEC SQL FETCH mycursor13 INTO :h_atmID, :h_atmlocation, :h_atmbalance, :h_atmregion, :h_atmthresholdValue, :h_atmstatus;
+              EXEC SQL COMMIT;
+           
+            if(sqlca.sqlcode<0)
+            {
+                 EXEC SQL CLOSE mycursor13;
+                 EXEC SQL COMMIT ;
+                 return employee_records;
+            }
+            Atm v(h_atmID, h_atmlocation, h_atmbalance, h_atmregion, h_atmthresholdValue, h_atmstatus);
+            Atm_records.push_back(v);
+         }
+         EXEC SQL CLOSE mycursor13;
+         EXEC SQL COMMIT ;
+         return Atm_records;
+      }
+}
+
+

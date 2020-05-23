@@ -1,0 +1,134 @@
+SQL> @./creation.sql
+
+Table created.
+
+	type VARCHAR,
+	            *
+ERROR at line 3:
+ORA-00906: missing left parenthesis 
+
+
+	location VARCHAR,
+	                *
+ERROR at line 3:
+ORA-00906: missing left parenthesis 
+
+
+	type VARCHAR,
+	            *
+ERROR at line 4:
+ORA-00906: missing left parenthesis 
+
+
+
+Table created.
+
+	location VARCHAR,
+	                *
+ERROR at line 3:
+ORA-00906: missing left parenthesis 
+
+
+	NAME VARCHAR,
+	            *
+ERROR at line 3:
+ORA-00906: missing left parenthesis 
+
+
+	ENAME VARCHAR,
+	             *
+ERROR at line 3:
+ORA-00906: missing left parenthesis 
+
+
+
+Table created.
+
+	PASSWORD VARCHAR,
+	                *
+ERROR at line 3:
+ORA-00906: missing left parenthesis 
+
+
+	type VARCHAR,
+	            *
+ERROR at line 4:
+ORA-00906: missing left parenthesis 
+
+
+	type VARCHAR,
+	            *
+ERROR at line 5:
+ORA-00906: missing left parenthesis 
+
+
+CREATE SEQUENCE transactionid
+                *
+ERROR at line 1:
+ORA-00955: name is already used by an existing object 
+
+
+CREATE SEQUENCE requestid
+                *
+ERROR at line 1:
+ORA-00955: name is already used by an existing object 
+
+
+CREATE SEQUENCE accountno
+                *
+ERROR at line 1:
+ORA-00955: name is already used by an existing object 
+
+
+CREATE SEQUENCE employeeid
+                *
+ERROR at line 1:
+ORA-00955: name is already used by an existing object 
+
+
+CREATE SEQUENCE SEQ_CUSTOMERID
+                *
+ERROR at line 1:
+ORA-00955: name is already used by an existing object 
+
+
+CREATE SEQUENCE branchid
+                *
+ERROR at line 1:
+ORA-00955: name is already used by an existing object 
+
+
+CREATE SEQUENCE accountno
+                *
+ERROR at line 1:
+ORA-00955: name is already used by an existing object 
+
+
+CREATE SEQUENCE ATM_ID
+                *
+ERROR at line 1:
+ORA-00955: name is already used by an existing object 
+
+
+CREATE SEQUENCE BILLREFID
+                *
+ERROR at line 1:
+ORA-00955: name is already used by an existing object 
+
+
+CREATE SEQUENCE AccountNumber
+                *
+ERROR at line 1:
+ORA-00955: name is already used by an existing object 
+
+
+
+1 row created.
+
+
+1 row created.
+
+
+1 row created.
+
+SQL> exit

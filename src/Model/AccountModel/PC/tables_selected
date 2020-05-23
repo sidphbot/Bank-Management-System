@@ -1,0 +1,4 @@
+SELECT rate INTO :h_rate FROM rate
+SELECT customerID INTO :l_tempCustId FROM customer
+SELECT accountno INTO :l_tempaccountno FROM account
+SELECT transactionID , accountno,to_char(transactiondate,'dd-mm-yyyy'),type,amount FROM transaction

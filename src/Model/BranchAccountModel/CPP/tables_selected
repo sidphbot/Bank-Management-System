@@ -1,0 +1,4 @@
+SELECT AccountNumber.currval INTO :h_accountNumber FROM DUAL
+SELECT AccountNumber.CurrVal INTO :h_accountNumber FROM DUAL
+SELECT   branchid, thresholdValue, balance INTO  :h_branchId, :h_branchThreshold, :h_currentBalance  FROM branchAccount
+SELECT count(1) INTO :h_count FROM branchAccount

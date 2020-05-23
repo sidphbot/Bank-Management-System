@@ -1,0 +1,122 @@
+SQL> @./creation.sql
+
+Table created.
+
+
+Table created.
+
+
+Table created.
+
+	date DATE,
+	*
+ERROR at line 6:
+ORA-00904: : invalid identifier 
+
+
+
+Table created.
+
+
+Table created.
+
+
+Table created.
+
+
+Table created.
+
+
+Table created.
+
+
+Table created.
+
+
+Table created.
+
+
+Table created.
+
+
+Sequence created.
+
+
+Sequence created.
+
+
+Sequence created.
+
+
+Sequence created.
+
+
+Sequence created.
+
+
+Sequence created.
+
+CREATE SEQUENCE accountno
+                *
+ERROR at line 1:
+ORA-00955: name is already used by an existing object 
+
+
+
+Sequence created.
+
+
+Sequence created.
+
+
+Sequence created.
+
+
+1 row created.
+
+
+1 row created.
+
+
+1 row created.
+
+INSERT INTO LOGIN values('admin','test','abc','def')
+                         *
+ERROR at line 1:
+ORA-01722: invalid number 
+
+
+SQL> desc BILL
+ERROR:
+ORA-04043: object BILL does not exist 
+
+
+SQL> desc LOGIN
+ Name                                      Null?    Type
+ ----------------------------------------- -------- ----------------------------
+ USERNAME                                  NOT NULL NUMBER
+ PASSWORD                                           VARCHAR2(50)
+ SEQANS1                                            VARCHAR2(50)
+ SEQANS2                                            VARCHAR2(50)
+
+SQL> CREATE TABLE BILL (
+  2          BIILID NUMBER NOT NULL,
+  3          CUSTOMERID NUMBER,
+  4          type VARCHAR(50),
+  5          BILLAMOUNT FLOAT,
+  6          dateField DATE,
+  7          REFID NUMBER,
+  8          PRIMARY KEY (BIILID)
+  9  );
+
+Table created.
+
+SQL> INSERT INTO LOGIN values(12345678,'test','abc','def');
+
+1 row created.
+
+SQL> commit;
+
+Commit complete.
+
+SQL> exit

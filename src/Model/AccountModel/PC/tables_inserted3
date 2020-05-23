@@ -1,0 +1,5 @@
+59	INTO salariedAccount values(accountno.nextval,:h_minbalance,4.5);
+90	INTO currentaccount values(accountno.nextval,:h_balance);
+121	INTO fixedaccount values(accountno.nextval,:h_depositAmount,:h_depositYears,:h_maturityAmount,sysdate);
+76	INTO NonsalariedAccount values(accountno.nextval,:h_minbalance,4.5);
+59	INTO salariedAccount values(accountno.nextval,:h_minbalance,4.5);

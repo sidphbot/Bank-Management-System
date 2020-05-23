@@ -1,0 +1,2792 @@
+
+#include<string.h>
+#include</usr/include/oracle/11.2/client64/sqlca.h>
+#include<iostream>
+using namespace std;
+
+#include "../Include/Model.h"
+
+int Bank::dbCashDeposit1(Account &p_accountobj,double p_amount)
+{
+   EXEC SQL BEGIN DECLARE SECTION;
+   long int h_accountno;
+   long int p_accountno;
+   double h_amount;
+   char h_type[10]="DEPOSIT";
+   char h_typestat[11];
+   const char h_savings[11]={'s','a','v','i','n','g','s',' ',' ',' '};
+   const char h_fixed[11]={'f','i','x','e','d',' ',' ',' ',' ',' '};
+   const char h_current[11]={'c','u','r','r','e','n','t',' ',' ',' '};
+   EXEC SQL END DECLARE SECTION;
+   p_accountno=p_accountobj.m_getAccountNo();
+   h_accountno=p_accountno;
+   h_amount=p_amount;
+   EXEC SQL UPDATE ACCOUNT SET Balance = Balance + :h_amount where accountno=:h_accountno;
+   EXEC SQL SELECT type INTO :h_typestat FROM ACCOUNT WHERE accountno=:h_accountno;
+   if(strcmp(h_typestat,h_savings)==0)
+   {
+       EXEC SQL UPDATE SAVINGSACCOUNT SET Balance = Balance + :h_amount where accountno=:h_accountno;
+   }
+   else if(strcmp(h_typestat,h_current)==0)
+   {
+       EXEC SQL UPDATE CURRENTACCOUNT SET Balance = Balance + :h_amount where accountno=:h_accountno;
+   }
+   else
+       {
+           EXEC SQL UPDATE FIXEDACCOUNT SET Balance = Balance + :h_amount where accountno=:h_accountno;
+       }
+   if(sqlca.sqlcode==0)
+   {
+       EXEC SQL COMMIT;
+       EXEC SQL INSERT INTO TRANSACTION VALUES(transactionid.NextVal,:h_accountno,SYSDATE,:h_type,:h_amount);
+       return 1;
+   }
+   else
+       return 0;
+}
+
+
+int Bank::dbCashWithdrawal1(Account &p_accountobj,double p_amount)
+{
+    EXEC SQL BEGIN DECLARE SECTION;
+    long int h_accountno;
+    long int p_accountno;
+    double h_amount;
+    long int h_balance;
+    char h_typestat[11];
+    char h_type[10]="WITHDRAW";
+    const char h_savings[11]={'s','a','v','i','n','g','s',' ',' ',' '};
+    const char h_fixed[11]={'f','i','x','e','d',' ',' ',' ',' ',' '};
+    const char h_current[11]={'c','u','r','r','e','n','t',' ',' ',' '};
+    EXEC SQL END DECLARE SECTION;
+    p_accountno=p_accountobj.m_getAccountNo();
+    h_accountno=p_accountno;
+    h_amount=p_amount;
+    EXEC SQL SELECT Balance INTO :h_balance FROM ACCOUNT WHERE accountno=:h_accountno;
+    EXEC SQL SELECT type INTO :h_typestat FROM ACCOUNT WHERE accountno=:h_accountno;
+    if(h_balance > h_amount)
+    {
+       EXEC SQL UPDATE ACCOUNT SET Balance = Balance - :h_amount WHERE accountno=:h_accountno;
+    }
+    else
+        {
+            return 0;
+        }
+    if(strcmp(h_typestat,h_savings)==0)
+    {
+          EXEC SQL UPDATE SAVINGSACCOUNT SET Balance = Balance - :h_amount WHERE accountno=:h_accountno;
+    }
+    else if(strcmp(h_typestat,h_current)==0)
+         {
+             EXEC SQL UPDATE CURRENTACCOUNT SET Balance = Balance - :h_amount WHERE accountno=:h_accountno;
+         }
+         else
+             {
+                   EXEC SQL UPDATE FIXEDACCOUNT SET Balance = Balance - :h_amount WHERE accountno=:h_accountno;
+             }
+    if(sqlca.sqlcode==0)
+    {
+        EXEC SQL COMMIT;
+        EXEC SQL INSERT INTO TRANSACTION VALUES(transactionid.NextVal,:h_accountno,SYSDATE,:h_type,:h_amount);
+        return 1;
+    }
+    else
+        return 0;
+}
+
+int Bank::addATMAccount(ATM &p_atmobj)
+ {
+    EXEC SQL BEGIN DECLARE SECTION;
+    long int h_atmID;
+    char h_atmLocation[30];
+    double h_atmBalance;
+    char h_atmRegion[20];
+    //double h_atmThreshold;
+    //char h_atmStatus[10];
+    EXEC SQL END DECLARE SECTION;
+    ATMUI l_ATMUI;
+    //h_atmID= p_atmobj.m_getAtmid();
+    strcpy(h_atmLocation,p_atmobj.m_getAtmLoc().c_str());
+    h_atmBalance=p_atmobj.m_getAtmBalance();
+    strcpy(h_atmRegion,p_atmobj.m_getAtmRegion().c_str());
+    //h_atmThreshold=p_atmobj.m_getAtmThresholdValue();
+    //strcpy(h_atmStatus,p_atmobj.m_getatmstatus().c_str());
+
+
+    EXEC SQL INSERT INTO atm VALUES (ATM_ID.nextval,:h_atmLocation,:h_atmBalance,:h_atmRegion,100000,'active');
+
+    EXEC SQL SELECT ATM_ID.currval INTO :h_atmID from dual;
+    cout<<"\n ATM ID:"<< h_atmID;
+
+   if(sqlca.sqlcode==0)
+    {
+      l_ATMUI.displayAddMsg();
+      //cout<<"\n Details added Successfully";
+      EXEC SQL COMMIT;
+      return 1;
+    }
+    else{
+      l_ATMUI.displayFailMsg();
+      //cout<<"Failed to add details";
+      return 0;}
+
+}
+
+
+
+
+int Bank::dbviewATM(long int p_atmID)
+{
+   EXEC SQL BEGIN DECLARE SECTION;
+      long int h_atmID;
+      long int l_atmID;
+      char h_atmlocation[40];
+      double h_atmbalance;
+      char h_atmregion[40];
+      double h_atmthresholdValue;
+      char h_atmstatus[9];
+      char h_status[9];
+      char h_inactive[9]={'i','n','a','c','t','i','v','e'};
+   EXEC SQL END DECLARE SECTION;
+        h_atmID=p_atmID;
+        ATMUI l_ATMobj;
+       int l_idstatus=findAtmId(h_atmID);
+       if(l_idstatus==0)
+        {
+          cout<<"\n Customer ID doesn't exist...";
+          return 0;
+        }
+       else
+        {
+         ATMUI l_ATMUI;
+         EXEC SQL SELECT status INTO :h_status FROM atm WHERE atmID=:h_atmID;
+
+
+         //if(h_status=='inactive')
+
+         if(strcmp(h_status,h_inactive)==0)
+         {
+           l_ATMUI.displayRMsg();
+          // cout<<"\n Record has already been Deactivated...";
+           return 0;
+         }
+         else
+          {
+
+            ATMUI l_atmUI;
+
+            // if((l_idstatus==1) && (h_status=='active'))
+               //  return 0;
+
+                EXEC SQL SELECT atmID,location,balance,region,thresholdValue,status INTO  :h_atmID,:h_atmlocation,:h_atmbalance,:h_atmregion,:h_atmthresholdValue,:h_atmstatus  FROM atm WHERE atmID=:h_atmID;
+
+                l_ATMobj.displayAll(h_atmID,h_atmlocation,h_atmbalance,h_atmregion,h_atmstatus);
+
+
+
+               if(sqlca.sqlcode==0)
+                {
+                 EXEC SQL COMMIT;
+                  return 1;
+                 }else
+
+                return 0;
+}
+          }
+        }
+
+
+int Bank::dbUpdateAtm(ATM &p_atm)
+{
+EXEC SQL BEGIN DECLARE SECTION;
+
+char h_atmLocation[30]="";
+char h_atmRegion[10]="";
+char h_atmStatus[9]="";
+long int h_atmID=0;
+
+EXEC SQL END DECLARE SECTION;
+ATMUI l_ATMUI;
+h_atmID = p_atm.m_getAtmid();
+strcpy(h_atmLocation, p_atm.m_getAtmLoc().c_str());
+strcpy(h_atmRegion, p_atm.m_getAtmRegion().c_str());
+strcpy(h_atmStatus,p_atm.m_getatmstatus().c_str());
+
+if(h_atmLocation[0] != '\0')
+   EXEC SQL UPDATE atm SET location = :h_atmLocation WHERE atmID = :h_atmID;
+else if(h_atmRegion[0] != '\0')
+   EXEC SQL UPDATE atm SET region = :h_atmRegion WHERE atmID = :h_atmID;
+else if(h_atmStatus[0]!= '\0')
+   EXEC SQL UPDATE atm SET status = :h_atmStatus WHERE atmID = :h_atmID;
+else
+return 0;
+
+if(sqlca.sqlcode==0)
+   {
+     l_ATMUI.displayUpdate();
+    //cout<<"\n Updated Successfully...\n ";
+   EXEC SQL COMMIT;
+
+   return 1;
+   }
+else
+return 0;
+
+}
+
+
+int Bank::dbcloseATM(long int p_atmID)
+{
+   EXEC SQL BEGIN DECLARE SECTION;
+      long int h_atmID;
+      char h_status[9];
+      char h_inactive[9]={'i','n','a','c','t','i','v','e'};
+   EXEC SQL END DECLARE SECTION;
+       h_atmID=p_atmID;
+       ATMUI l_ATMUI;
+       int l_idstatus=findAtmId(h_atmID);
+      if(l_idstatus==0)
+      {
+       l_ATMUI.displayCustNotFound();
+      // cout<<"\n Customer ID not found...";
+         return 0;
+      }
+      else
+      {
+       EXEC SQL SELECT status INTO :h_status FROM atm WHERE atmID=:h_atmID;
+       cout<<"status fetched";
+
+       if(strcmp(h_status,h_inactive)==0)
+        {
+         l_ATMUI.displayMsg();
+        // cout<<"\n ATM already Deactivated...";
+         return 0;
+        }
+       else
+         {
+           EXEC SQL UPDATE atm SET status='inactive' WHERE atmID=:h_atmID;
+           l_ATMUI.displayUpdate();
+if(sqlca.sqlcode==0)
+            {
+              l_ATMUI.displayDeactivate();
+             // cout<<"\n Deactivated Successfully...\n";
+              EXEC SQL COMMIT;
+              return 1;
+            } else
+             return 0;
+          }
+        }
+      }
+
+
+
+int Bank:: findAtmId(long int p_atmid)
+{
+     EXEC SQL BEGIN DECLARE SECTION;
+         long int l_atmid=0;
+       //  long int p_atmid;
+         long int h_atmid;
+        EXEC SQL END DECLARE SECTION;
+        h_atmid=p_atmid;
+        EXEC SQL SELECT atmID INTO :l_atmid FROM atm WHERE atmID= :h_atmid;
+       if(l_atmid==0)
+         return 0;
+       else
+         return 1;
+}
+
+
+
+
+int Bank::addCustomerAccount(Customer &p_Custobj,Account &p_Accobj)
+ {
+
+    AccountUI UIobj;
+
+
+    EXEC SQL BEGIN DECLARE SECTION;
+    long int h_CustID;
+    long int p_CustID;
+    char h_Acctype[11];
+
+
+    //const char h_savings[11]={'s','a','v','i','n','g','s',' ',' ',' '};
+    //const char h_current[11]={'c','u','r','r','e','n','t',' ',' ',' '};
+    //const char h_fixdeposit[11]={'f','i','x','e','d',' ',' ',' ',' ',' '};
+    //char h_locker[11]={'l','o','c','k','e','r'};
+    double h_AccBalance;
+    double h_balance;
+    char h_acctype[11]="";
+
+    EXEC SQL END DECLARE SECTION;
+   dbConnect();
+   h_CustID= p_Custobj.getCustomerId();
+
+
+ //  int l_idstatus=findCustomerID(h_CustID);
+ //  if(l_idstatus==0)
+   //  return 0;
+   //    h_CustID= p_Custobj.getCustomerId();
+ int mchoice=UIobj.displayAccountTypeMenu();
+
+    if(mchoice==1)
+    {
+      int schoice=UIobj.displaySavingsMenu();
+
+     if(schoice==1)
+     {
+      EXEC SQL BEGIN DECLARE SECTION;
+       double h_minbalance;
+       double h_balance;
+        long int h_accno;
+      EXEC SQL END DECLARE SECTION;
+
+       double minbalance=UIobj.getSalariedBalance();
+ h_minbalance=minbalance;
+       EXEC SQL INSERT INTO salariedAccount values(accountno.nextval,:h_minbalance);
+ EXEC SQL INSERT INTO account values(accountno.currval,'savings',:h_CustID,:h_minbalance,1);
+  UIobj.displayAction();
+         EXEC SQL SELECT accountno.currval INTO :h_accno from dual;
+
+         cout<<"\n Account Number:"<< h_accno;
+     }
+
+     else if(schoice==2)
+     {
+       EXEC SQL BEGIN DECLARE SECTION;
+        double h_minbalance;
+        double h_balance;
+        long int h_accno;
+    EXEC SQL END DECLARE SECTION;
+ double minbalance=UIobj.getNonSalBalance();
+ h_minbalance=minbalance;
+        EXEC SQL INSERT INTO NonsalariedAccount values(accountno.nextval,:h_minbalance);
+      //  cout<<"Inserted into Nonsalaried Account";
+        EXEC SQL INSERT INTO account values(accountno.currval,'savings',:h_CustID,:h_minbalance,1);
+
+                 UIobj.displayAction();
+          EXEC SQL SELECT accountno.currval INTO :h_accno from dual;
+
+        cout<<"\n Account Number:"<< h_accno;
+  }
+  }
+   else if(mchoice==2)
+   {
+      EXEC SQL BEGIN DECLARE SECTION;
+       double h_balance;
+       long int h_accno;
+      EXEC SQL END DECLARE SECTION;
+
+     double balance=UIobj.getBalance();
+     h_balance=balance;
+     EXEC SQL INSERT INTO currentaccount values(accountno.nextval,:h_balance,200);
+ EXEC SQL INSERT INTO account values(accountno.currval,'current',:h_CustID,:h_balance,1);
+      UIobj.displayAction();
+        EXEC SQL SELECT accountno.currval INTO :h_accno from dual;
+
+        cout<<"\n Account Number:"<< h_accno;
+
+  }
+
+  else if(mchoice==3)
+  {
+    EXEC SQL BEGIN DECLARE SECTION;
+     double h_depositAmount;
+     int  h_depositYears;
+     double h_maturityInterest;
+     double h_maturityAmount;
+     double h_rate;
+      long int h_accno;
+    EXEC SQL END DECLARE SECTION;
+
+     double depositAmount=UIobj.getDepositAmount();
+     int depositYears=UIobj.getDepositYears();
+
+
+     h_depositAmount= depositAmount;
+     h_depositYears=depositYears;
+
+     EXEC SQL SELECT rate INTO :h_rate FROM rate WHERE time=:h_depositYears;
+  if(h_depositYears==1)
+      {
+     h_maturityInterest=h_depositAmount*0.07;
+     h_maturityAmount=h_depositAmount+h_maturityInterest;
+
+
+     EXEC SQL INSERT INTO fixedaccount values(accountno.nextval,:h_depositAmount,:h_depositYears,:h_maturityAmount,sysdate);
+
+    }
+  else if(h_depositYears==3)
+      {
+ h_maturityInterest=h_depositAmount*0.0725;
+        h_maturityAmount=h_depositAmount+h_maturityInterest;
+         EXEC SQL INSERT INTO fixedaccount values(accountno.nextval,:h_depositAmount,:h_depositYears,:h_maturityAmount,sysdate);
+
+      }
+       else if(h_depositYears==5)
+      {
+        h_maturityInterest=h_depositAmount*0.075;
+        h_maturityAmount=h_depositAmount+h_maturityInterest;
+         EXEC SQL INSERT INTO fixedaccount values(accountno.nextval,:h_depositAmount,:h_depositYears,:h_maturityAmount,sysdate);
+      }
+      else{
+          return 0;
+       }
+
+EXEC SQL INSERT INTO account values(accountno.currval,'fixed',:h_CustID,:h_depositAmount,1);
+   UIobj.displayAction();
+
+        EXEC SQL SELECT accountno.currval INTO :h_accno from dual;
+ cout<<"\n Account Number:"<< h_accno;
+
+
+ }
+else{
+ UIobj.displayInvalid();
+}
+
+   if(sqlca.sqlcode==0)
+    {
+      EXEC SQL COMMIT;
+      return 1;
+    }
+    else
+      return 0;
+
+}
+
+
+
+
+int Bank::dbcloseAccount(long int p_accountno)
+{
+   EXEC SQL BEGIN DECLARE SECTION;
+      long int h_accountno;
+   EXEC SQL END DECLARE SECTION;
+   dbConnect();   
+    h_accountno=p_accountno;
+       int l_idstatus=findAccountNo(h_accountno);
+      if(l_idstatus==0)
+         return 0;
+    
+     EXEC SQL UPDATE account SET status=0 WHERE accountno=:h_accountno; 
+    //  cout<<"\n Updated Successfully";
+      AccountUI l_AccUI;
+      l_AccUI.displayDeactivate();
+
+if(sqlca.sqlcode==0)
+{
+    EXEC SQL COMMIT;
+     return 1;
+  } else
+     return 0;
+}
+
+
+int Bank::findAccountNo(long int p_accountno)
+{
+
+        EXEC SQL BEGIN DECLARE SECTION;
+        long int h_tempaccountno;
+        int h_tempaccountno1;
+        EXEC SQL END DECLARE SECTION;
+        dbConnect();
+        //long int h_tempaccountno1;
+        h_tempaccountno=p_accountno;
+        //cout<<h_tempaccountno;
+        EXEC SQL SELECT count(*) INTO :h_tempaccountno1 FROM account WHERE accountno=:h_tempaccountno;
+       //cout<<h_tempaccountno<<"  "<<h_tempaccountno1;
+       int l_tempaccountno1=h_tempaccountno1;
+       long int l_tempaccountno=h_tempaccountno;
+if(l_tempaccountno1== 0)
+            return 0;
+          else
+             return 1;
+}
+
+
+int Bank::dbBillPaymentWater(Account &p_AccountObj) 
+{
+EXEC SQL BEGIN DECLARE SECTION;
+long int h_accountno;
+int h_BillId;
+float h_Amount;
+long int h_tid;
+long int h_RefId;
+EXEC SQL END DECLARE SECTION;
+EXEC SQL CONNECT :"user11@tcsghy" identified by :"tcsghy"; 
+AccountUI l_AccUI;
+h_accountno=p_AccountObj.m_getAccountNo();
+h_BillId=p_AccountObj.m_getBillId();
+h_Amount=p_AccountObj.m_getAmount();
+EXEC SQL INSERT INTO BILL VALUES(:h_BillId,:h_accountno,'Water',:h_Amount,SYSDATE,BILLREFID.NEXTVAL);
+EXEC SQL SELECT transactionid.nextval into :h_tid from dual;
+EXEC SQL INSERT INTO TRANSACTION VALUES(:h_tid,:h_accountno,SYSDATE,'DEPOSIT',:h_Amount);
+EXEC SQL INSERT INTO BILLTRANSACTION VALUES(:h_tid,:h_BillId);
+
+ if(sqlca.sqlcode == 0)  
+{
+ EXEC SQL select billrefid.currval into :h_RefId from dual;
+ EXEC SQL COMMIT;
+EXEC SQL SELECT BIILID , CUSTOMERID , BILLAMOUNT into :h_BillId , :h_accountno, :h_Amount FROM BILL WHERE REFID=:h_RefId;
+l_AccUI.displayBillWater(h_accountno,h_BillId,h_Amount,h_RefId);
+ EXEC SQL COMMIT WORK RELEASE; 
+ return 1;
+ }
+ else 
+ return 0;
+}
+
+int Bank::dbBillPaymentElectricity(Account &p_AccountObj)
+{
+EXEC SQL BEGIN DECLARE SECTION;
+long int h_accountno;
+int h_BillId;
+float h_Amount;
+long int h_tid;
+long int h_RefId;
+EXEC SQL END DECLARE SECTION;
+EXEC SQL CONNECT :"user11@tcsghy" identified by :"tcsghy";
+AccountUI l_AccUI;
+h_accountno=p_AccountObj.m_getAccountNo();
+h_BillId=p_AccountObj.m_getBillId();
+h_Amount=p_AccountObj.m_getAmount();
+EXEC SQL INSERT INTO BILL VALUES(:h_BillId,:h_accountno,'Electricity',:h_Amount,SYSDATE,BILLREFID.NEXTVAL);
+EXEC SQL SELECT transactionid.nextval into :h_tid from dual;
+EXEC SQL INSERT INTO TRANSACTION VALUES(:h_tid,:h_accountno,SYSDATE,'DEPOSIT',:h_Amount);
+EXEC SQL INSERT INTO BILLTRANSACTION VALUES(:h_tid,:h_BillId);
+
+ if(sqlca.sqlcode == 0)
+{
+ EXEC SQL select billrefid.currval into :h_RefId from dual;
+ EXEC SQL COMMIT;
+
+  EXEC SQL SELECT BIILID , CUSTOMERID , BILLAMOUNT into :h_BillId , :h_accountno, :h_Amount FROM BILL WHERE REFID=:h_RefId;
+l_AccUI.displayBillElec(h_accountno,h_BillId,h_Amount,h_RefId);
+
+/*cout<<"\n Accountnumber : "<<h_accountno;
+cout<<"\n Bill id : "<<h_BillId;
+cout<<"\n bill type : Electricity Bill";
+cout<<"\n amount paid : "<<h_Amount;
+cout<<"\nyour BILL REFERENCE ID : "<<h_RefId;*/
+ EXEC SQL COMMIT WORK RELEASE;
+ return 1; }
+ else
+ return 0;
+
+}
+
+int Bank::dbBillPaymentPhone(Account &p_AccountObj)
+{
+EXEC SQL BEGIN DECLARE SECTION;
+long int h_accountno;
+int h_BillId;
+float h_Amount;
+long int h_tid;
+long int h_RefId;
+EXEC SQL END DECLARE SECTION;
+EXEC SQL CONNECT :"user11@tcsghy" identified by :"tcsghy";
+AccountUI l_AccUI;
+h_accountno=p_AccountObj.m_getAccountNo();
+h_BillId=p_AccountObj.m_getBillId();
+h_Amount=p_AccountObj.m_getAmount();
+EXEC SQL INSERT INTO BILL VALUES(:h_BillId,:h_accountno,'Phone',:h_Amount,SYSDATE,BILLREFID.NEXTVAL);
+EXEC SQL SELECT transactionid.nextval into :h_tid from dual;
+EXEC SQL INSERT INTO TRANSACTION VALUES(:h_tid,:h_accountno,SYSDATE,'DEPOSIT',:h_Amount);
+EXEC SQL INSERT INTO BILLTRANSACTION VALUES(:h_tid,:h_BillId);
+
+ if(sqlca.sqlcode == 0)
+{
+ EXEC SQL select billrefid.currval into :h_RefId from dual;
+ EXEC SQL COMMIT;
+
+  EXEC SQL SELECT BIILID , CUSTOMERID , BILLAMOUNT into :h_BillId , :h_accountno, :h_Amount FROM BILL WHERE REFID=:h_RefId;
+l_AccUI.displayBillPhone(h_accountno,h_BillId,h_Amount,h_RefId);
+/*cout<<"\n Accountnumber : "<<h_accountno;
+cout<<"\n Bill id : "<<h_BillId;
+cout<<"\n bill type : Phone Bill";
+cout<<"\n amount paid : "<<h_Amount;
+cout<<"\nyour BILL REFERENCE ID : "<<h_RefId;*/
+ EXEC SQL COMMIT WORK RELEASE;
+ return 1; }
+ else
+ return 0;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+void Bank::dbConnect()
+{
+EXEC SQL BEGIN DECLARE SECTION;
+char h_hostName[14]="user11@tcsghy";
+char h_password[8]="tcsghy";
+
+EXEC SQL END DECLARE SECTION;
+
+EXEC SQL CONNECT :h_hostName IDENTIFIED BY :h_password;
+}
+
+void Bank::disconnect()
+{
+EXEC SQL COMMIT WORK RELEASE;
+}
+
+
+long int Bank::addBranchAccount(BranchAccount &p_BranchAccount)
+{
+   EXEC SQL BEGIN DECLARE SECTION;
+   long int h_branchId;
+   double h_branchThreshold;
+   double h_currentBalance;
+   long int h_accountNumber; 
+   EXEC SQL END DECLARE SECTION;
+   h_branchId=p_BranchAccount.getBranchID();
+   //cout<<"Branch ID = "<<h_branchId;
+   h_branchThreshold=p_BranchAccount.getBranchThreshold();
+   //cout<<"Treshold = "<<h_branchThreshold;
+   h_currentBalance=p_BranchAccount.getCurrentBalance();
+   //cout<<"Balance = "<<h_currentBalance;
+   //EXEC SQL INSERT INTO branchAccount VALUES(100000, :h_branchId, :h_branchThreshold, :h_currentBalance);
+   EXEC SQL INSERT INTO branchAccount VALUES(AccountNumber.nextval,:h_branchId,:h_branchThreshold,:h_currentBalance,1);
+   //EXEC SQL SELECT AccountNumber.currval INTO :h_accountNumber FROM DUAL;   
+   //long int l_accountNumber=h_accountNumber;
+   EXEC SQL COMMIT;
+   if(!sqlca.sqlcode)
+   {
+   EXEC SQL SELECT AccountNumber.CurrVal INTO :h_accountNumber FROM DUAL;
+   EXEC SQL COMMIT;
+   long int l_accountNumber = h_accountNumber; 
+   return l_accountNumber;
+   EXEC SQL COMMIT; 
+   }
+   else
+   return 0;
+}
+
+
+BranchAccount Bank::viewBranchAccount(long int p_branchAccountNumber)
+{
+EXEC SQL BEGIN DECLARE SECTION;
+
+long int h_branchAccountNumber;
+long int h_branchId;
+double h_branchThreshold;
+double h_currentBalance;
+
+int h_status;
+EXEC SQL END DECLARE SECTION;
+h_branchAccountNumber = p_branchAccountNumber;
+
+EXEC SQL SELECT   branchid, thresholdValue, balance INTO  :h_branchId, :h_branchThreshold, :h_currentBalance,:h_status  FROM branchAccount WHERE accountNo =:h_branchAccountNumber;
+
+
+BranchAccount l_tempBranchAccount(h_branchAccountNumber, h_branchId, h_branchThreshold, h_currentBalance,h_status);
+
+
+return l_tempBranchAccount;
+
+
+}
+
+
+int Bank::findBranchAccount(long int p_branchAccountNumber)
+{
+   EXEC SQL BEGIN DECLARE SECTION;
+   long int h_branchAccountNumber;
+   int h_count = 0;
+   EXEC SQL END DECLARE SECTION;
+   h_branchAccountNumber = p_branchAccountNumber;
+   EXEC SQL SELECT count(1) INTO :h_count FROM branchAccount WHERE accountNo =:h_branchAccountNumber AND status=1;
+   int l_count = h_count;
+   return l_count;
+
+}
+
+int Bank::deleteBranchAccount(long int p_branchAccountNumber)
+{
+EXEC SQL BEGIN DECLARE SECTION;
+
+long int h_branchAccountNumber;
+
+EXEC SQL END DECLARE SECTION;
+
+h_branchAccountNumber=p_branchAccountNumber;
+EXEC SQL UPDATE branchAccount SET status = 0 WHERE accountNo =:h_branchAccountNumber;
+if(sqlca.sqlcode==0)
+   {
+   EXEC SQL COMMIT;
+
+   return 1;
+   }
+else
+return 0;
+
+}
+
+
+int Bank::updateBranchID(BranchAccount &p_branchAccount)
+{
+   EXEC SQL BEGIN DECLARE SECTION;
+   long h_branchAccountNumber;
+   long h_branchId;
+   EXEC SQL END DECLARE SECTION;
+   h_branchAccountNumber=p_branchAccount.getBranchAccountNo();
+   h_branchId=p_branchAccount.getBranchID();
+   EXEC SQL UPDATE branchaccount set branchid=:h_branchId where  ACCOUNTNO=:h_branchAccountNumber;
+   EXEC SQL COMMIT;
+   if(!sqlca.sqlcode)
+   {
+      return 1;
+   }
+   else
+   {
+      return 0;
+   }
+}
+
+
+int Bank::updateBranchThreshold(BranchAccount &p_branchAccount)
+{
+   EXEC SQL BEGIN DECLARE SECTION;
+   long h_branchAccountNumber;
+   long h_branchThreshold;
+   EXEC SQL END DECLARE SECTION;
+   h_branchAccountNumber=p_branchAccount.getBranchAccountNo();
+   h_branchThreshold=p_branchAccount.getBranchThreshold();
+cout<<"thr = "<<h_branchThreshold<<"   acc : "<<h_branchAccountNumber;   
+EXEC SQL UPDATE branchaccount set  THRESHOLDVALUE=:h_branchThreshold where  ACCOUNTNO=:h_branchAccountNumber;
+//cout<<" sqlca : "<<sqlca.sqlcode;  
+EXEC SQL COMMIT;
+   if(!sqlca.sqlcode)
+   { 
+      return 1;
+   }
+   else
+   {
+      return 0;
+   }
+}
+
+int Bank::updateCurrentBalance(BranchAccount &p_branchAccount)
+{
+   EXEC SQL BEGIN DECLARE SECTION;
+   long h_branchAccountNumber;
+   long h_currentBalance;
+   EXEC SQL END DECLARE SECTION;
+   h_branchAccountNumber=p_branchAccount.getBranchAccountNo();
+   h_currentBalance=p_branchAccount.getCurrentBalance();
+   EXEC SQL UPDATE branchaccount set balance=:h_currentBalance where  ACCOUNTNO=:h_branchAccountNumber;
+   EXEC SQL COMMIT;
+   if(!sqlca.sqlcode)
+   {
+      return 1;
+   }
+   else
+   {
+      return 0;
+   }
+}
+
+double Bank::displayBalance(long int p_accno)
+{
+   EXEC SQL BEGIN DECLARE SECTION;
+   double h_bal;
+   long int h_accountno;
+   EXEC SQL END DECLARE SECTION;
+
+   h_accountno=p_accno;
+   EXEC SQL SELECT BALANCE INTO :h_bal FROM account WHERE ACCOUNTNO=:h_accountno;
+   return h_bal;
+}
+
+int Bank :: dbCashDeposit(Account &p_accountobj,double p_amount)
+{
+
+EXEC SQL BEGIN DECLARE SECTION;
+long int h_accountno;
+long int p_accountno;
+int h_period;
+double h_amount;
+char h_type[10]="DEPOSIT";
+int h_tstatus;
+char h_typestat[11];
+//const char h_status[10]={'a','c','t','i','v','e',' ',' ',' '};
+double h_balance;
+char h_date[20];
+char h_opendate[20];
+const char h_savings[11]={'s','a','v','i','n','g','s',' ',' ',' '};
+const char h_fixed[11]={'f','i','x','e','d',' ',' ',' ',' ',' '};
+const char h_current[11]={'c','u','r','r','e','n','t',' ',' ',' '};
+EXEC SQL END DECLARE SECTION;
+
+EXEC SQL CONNECT :"user11@tcsghy" identified by :"tcsghy";
+
+p_accountno=p_accountobj.m_getAccountNo();
+  h_accountno=p_accountno;
+  h_amount=p_amount;
+AccountUI Accobj;
+
+EXEC SQL SELECT balance into :h_balance from account where accountno=:h_accountno;
+
+EXEC SQL SELECT status INTO :h_tstatus from account where accountno=:h_accountno;
+if(h_tstatus==1)
+{
+EXEC SQL SELECT type INTO :h_typestat FROM ACCOUNT WHERE accountno=:h_accountno;
+if(strcmp(h_typestat,h_savings)==0)
+{
+h_balance=h_balance+h_amount;
+EXEC SQL UPDATE SAVINGSACCOUNT SET balance =:h_balance where accountno=:h_accountno;
+EXEC SQL COMMIT;
+EXEC SQL UPDATE ACCOUNT SET balance =:h_balance WHERE accountno=:h_accountno;
+EXEC SQL COMMIT;
+EXEC SQL INSERT INTO TRANSACTION VALUES(transactionid.NextVal,:h_accountno,SYSDATE,:h_type,:h_amount);
+EXEC SQL COMMIT;
+EXEC SQL SELECT SYSDATE INTO :h_date from dual;
+Accobj.displayAccount(h_typestat,h_type,h_balance,h_date);
+EXEC SQL COMMIT;
+EXEC SQL COMMIT WORK RELEASE;
+return 1;
+}
+else if(strcmp(h_typestat,h_current)==0)
+{
+h_balance=h_balance+h_amount;
+EXEC SQL UPDATE CURRENTACCOUNT SET balance =:h_balance,no_of_transactions=+1 where accountno=:h_accountno;
+EXEC SQL COMMIT;
+EXEC SQL UPDATE ACCOUNT SET balance =:h_balance WHERE accountno=:h_accountno;
+EXEC SQL COMMIT;
+EXEC SQL INSERT INTO TRANSACTION VALUES(transactionid.NextVal,:h_accountno,SYSDATE,:h_type,:h_amount);
+EXEC SQL COMMIT;
+EXEC SQL SELECT SYSDATE INTO :h_date from dual;
+Accobj.displayAccount(h_typestat,h_type,h_balance,h_date);
+EXEC SQL COMMIT;
+EXEC SQL COMMIT WORK RELEASE;
+return 1;
+}
+else
+{
+  cout<<"\n Transaction not possible from a fixed deposit account";
+  return 0;
+}
+}
+else
+{
+cout<<"\n account is not active"<<endl;
+return 0;
+}
+}
+
+int Bank :: dbFundCashDeposit(Account &p_accountobj,double p_amount)
+{
+
+EXEC SQL BEGIN DECLARE SECTION;
+long int h_accountno;
+long int p_accountno;
+int h_period;
+double h_amount;
+char h_type[10]="DEPOSIT";
+int h_tstatus;
+char h_typestat[11];
+//const char h_status[10]={'a','c','t','i','v','e',' ',' ',' '};
+double h_balance;
+char h_date[20];
+char h_opendate[20];
+const char h_savings[11]={'s','a','v','i','n','g','s',' ',' ',' '};
+const char h_fixed[11]={'f','i','x','e','d',' ',' ',' ',' ',' '};
+const char h_current[11]={'c','u','r','r','e','n','t',' ',' ',' '};
+EXEC SQL END DECLARE SECTION;
+
+EXEC SQL CONNECT :"user11@tcsghy" identified by :"tcsghy";
+
+p_accountno=p_accountobj.m_getAccountNo();
+  h_accountno=p_accountno;
+  h_amount=p_amount;
+AccountUI Accobj;
+
+EXEC SQL SELECT balance into :h_balance from account where accountno=:h_accountno;
+
+EXEC SQL SELECT status INTO :h_tstatus from account where accountno=:h_accountno;
+if(h_tstatus==1)
+{
+EXEC SQL SELECT type INTO :h_typestat FROM ACCOUNT WHERE accountno=:h_accountno;
+if(strcmp(h_typestat,h_savings)==0)
+{
+h_balance=h_balance+h_amount;
+EXEC SQL UPDATE SAVINGSACCOUNT SET balance =:h_balance where accountno=:h_accountno;
+EXEC SQL COMMIT;
+EXEC SQL UPDATE ACCOUNT SET balance =:h_balance WHERE accountno=:h_accountno;
+EXEC SQL COMMIT;
+EXEC SQL INSERT INTO TRANSACTION VALUES(transactionid.NextVal,:h_accountno,SYSDATE,:h_type,:h_amount);
+EXEC SQL COMMIT;
+EXEC SQL SELECT SYSDATE INTO :h_date from dual;
+//Accobj.displayAccount(h_typestat,h_type,h_balance,h_date);
+EXEC SQL COMMIT;
+EXEC SQL COMMIT WORK RELEASE;
+return 1;
+}
+else if(strcmp(h_typestat,h_current)==0)
+{
+h_balance=h_balance+h_amount;
+EXEC SQL UPDATE CURRENTACCOUNT SET balance =:h_balance,no_of_transactions=+1 where accountno=:h_accountno;
+EXEC SQL COMMIT;
+EXEC SQL UPDATE ACCOUNT SET balance =:h_balance WHERE accountno=:h_accountno;
+EXEC SQL COMMIT;
+EXEC SQL INSERT INTO TRANSACTION VALUES(transactionid.NextVal,:h_accountno,SYSDATE,:h_type,:h_amount);
+EXEC SQL COMMIT;
+EXEC SQL SELECT SYSDATE INTO :h_date from dual;
+//Accobj.displayAccount(h_typestat,h_type,h_balance,h_date);
+EXEC SQL COMMIT;
+EXEC SQL COMMIT WORK RELEASE;
+return 1;
+}
+else
+{
+  cout<<"\n Transaction not possible from a fixed deposit account";
+  return 0;
+}
+}
+else
+{
+cout<<"\n account is not active"<<endl;
+return 0;
+}
+}
+
+
+int Bank::dbfixedCashWithdrawal(Account &p_accountobj)
+{
+AccountUI Accobj;
+EXEC SQL BEGIN DECLARE SECTION;
+long int h_accountno;
+long int p_accountno;
+double h_amount;
+double h_balance;
+char h_typestat[11];
+char h_type[10]="WITHDRAW";
+int h_tstatus;
+int h_days;
+int h_period;
+char h_date[20];
+char h_opendate[20];
+//const char h_status[10]={'a','c','t','i','v','e',' ',' ',' '};
+const char h_savings[11]={'s','a','v','i','n','g','s',' ',' ',' '};
+const char h_fixed[11]={'f','i','x','e','d',' ',' ',' ',' ',' '};
+const char h_current[11]={'c','u','r','r','e','n','t',' ',' ',' '};
+EXEC SQL END DECLARE SECTION;
+EXEC SQL CONNECT :"user11@tcsghy" identified by :"tcsghy";
+p_accountno=p_accountobj.m_getAccountNo();
+h_accountno=p_accountno;
+EXEC SQL SELECT balance INTO :h_balance FROM ACCOUNT WHERE accountno=:h_accountno;
+EXEC SQL SELECT type INTO :h_typestat FROM ACCOUNT WHERE accountno=:h_accountno;
+EXEC SQL SELECT status INTO :h_tstatus from account where accountno=:h_accountno;
+if(h_tstatus==1)
+{
+EXEC SQL SELECT balance INTO :h_balance FROM ACCOUNT WHERE accountno=:h_accountno;
+if(h_balance>=10000)
+{
+EXEC SQL SELECT (sysdate - currentdate) days_between into :h_days from fixedaccount where accountno=:h_accountno;
+if(h_days>=365 && h_days<730)
+{
+EXEC SQL BEGIN DECLARE SECTION;
+   double h_maturityamount;
+   double h_maturitybalance;
+EXEC SQL END DECLARE SECTION;
+     h_maturityamount=h_balance*0.070;
+     h_maturitybalance=h_balance+h_maturityamount;
+cout<<"\n\n Amount withdrawn is: "<<h_maturitybalance;
+EXEC SQL UPDATE FIXEDACCOUNT SET balance =0, macturitybalance=0 where accountno=:h_accountno;
+}
+else if(h_days>=730 && h_days<1825) 
+{
+EXEC SQL BEGIN DECLARE SECTION;
+   double h_maturityamount;
+   double h_maturitybalance;
+EXEC SQL END DECLARE SECTION;
+ h_maturityamount=h_balance*0.0725;
+ h_maturitybalance=h_balance+h_maturityamount;
+cout<<"\n Amount withdrawn is: "<<h_maturitybalance;
+EXEC SQL UPDATE FIXEDACCOUNT SET balance =0, macturitybalance=0 where accountno=:h_accountno;
+}
+else if(h_days>=1825)
+{
+EXEC SQL BEGIN DECLARE SECTION;
+   double h_maturityamount;
+   double h_maturitybalance;
+EXEC SQL END DECLARE SECTION;
+ h_maturityamount=h_balance*0.075;
+ h_maturitybalance=h_balance+h_maturityamount;
+cout<<"\n Amount withdrawn is: "<<h_maturitybalance;
+EXEC SQL UPDATE FIXEDACCOUNT SET principalbalance =0, macturitybalance=0 where accountno=:h_accountno;
+}
+else
+{
+cout<<"\n Macturity period is less than 1 year";
+EXEC SQL UPDATE ACCOUNT SET balance=0 where accountno=:h_accountno;
+}
+EXEC SQL UPDATE ACCOUNT SET balance=0  WHERE accountno=:h_accountno;
+EXEC SQL COMMIT;
+EXEC SQL INSERT INTO TRANSACTION VALUES(transactionid.NextVal,:h_accountno,SYSDATE,:h_type,:h_balance);
+EXEC SQL COMMIT;
+EXEC SQL SELECT SYSDATE INTO :h_date from dual;
+EXEC SQL SELECT CURRENTDATE,years INTO :h_opendate,:h_period from fixedaccount where accountno=:h_accountno;
+//cout<<"\n Macturity Period of Account: "<<h_period;
+//cout<<"\nFD Opening Date: "<<h_opendate;
+EXEC SQL SELECT macturitybalance into :h_balance from fixedaccount where accountno=:h_accountno;
+//cout<<"\nBalance after withdrawal: " <<h_balance<<"\nTransaction Date: "<<h_date;
+Accobj.displayfixed(h_type,h_period,h_opendate,h_balance,h_date);
+EXEC SQL COMMIT WORK RELEASE;
+return 1;
+}
+else
+{
+cout<<"\n Balance is low,withdrawal is not possible";
+return 0;
+}
+}
+else
+{
+  cout<<"\naccount is not active"<<endl;
+  return 0;
+}
+}
+
+
+int Bank::dbCashWithdrawal(Account &p_accountobj,double p_amount)
+{
+AccountUI Accobj;
+EXEC SQL BEGIN DECLARE SECTION;
+long int h_accountno;
+long int p_accountno;
+double h_amount;
+double h_balance;
+char h_typestat[11];
+char h_type[10]="WITHDRAW";
+int h_tstatus;
+int h_days;
+char h_date[20];
+//const char h_status[10]={'a','c','t','i','v','e',' ',' ',' '};
+const char h_savings[11]={'s','a','v','i','n','g','s',' ',' ',' '};
+const char h_fixed[11]={'f','i','x','e','d',' ',' ',' ',' ',' '};
+const char h_current[11]={'c','u','r','r','e','n','t',' ',' ',' '};
+EXEC SQL END DECLARE SECTION;
+EXEC SQL CONNECT :"user11@tcsghy" identified by :"tcsghy";
+p_accountno=p_accountobj.m_getAccountNo();
+h_accountno=p_accountno;
+h_amount=p_amount;
+EXEC SQL SELECT balance INTO :h_balance FROM ACCOUNT WHERE accountno=:h_accountno;
+EXEC SQL SELECT type INTO :h_typestat FROM ACCOUNT WHERE accountno=:h_accountno;
+if(h_accountno!=100090 || h_accountno!=100091 || h_accountno!=100092)
+{
+if(h_balance > h_amount)
+{
+EXEC SQL SELECT status INTO :h_tstatus from account where accountno=:h_accountno;
+if(h_tstatus==1)
+{
+EXEC SQL SELECT balance INTO :h_balance FROM ACCOUNT WHERE accountno=:h_accountno;
+if(strcmp(h_typestat,h_savings)==0)
+{
+h_balance=h_balance-h_amount;
+EXEC SQL UPDATE SAVINGSACCOUNT SET balance=h_balance WHERE accountno=:h_accountno;
+EXEC SQL COMMIT;
+}
+else
+{
+h_balance=h_balance-h_amount;
+EXEC SQL UPDATE CURRENTACCOUNT SET balance =:h_balance,no_of_transactions=+1 WHERE accountno=:h_accountno;
+EXEC SQL COMMIT;
+}
+EXEC SQL UPDATE ACCOUNT SET balance=:h_balance WHERE accountno=:h_accountno;
+EXEC SQL COMMIT;
+EXEC SQL INSERT INTO TRANSACTION VALUES(transactionid.NextVal,:h_accountno,SYSDATE,:h_type,:h_amount);
+EXEC SQL COMMIT;
+EXEC SQL SELECT SYSDATE INTO :h_date from dual;
+Accobj.displayAccount(h_typestat,h_type,h_balance,h_date);
+EXEC SQL COMMIT WORK RELEASE; 
+return 1;
+}
+else
+{
+  cout<<"\naccount is not active"<<endl;
+  return 0;
+}
+}
+else
+return 0;
+}
+else
+{
+ cout<<"\n Access denied.";
+ return 0;
+}
+}
+
+
+Branch Bank::viewBranch(long int p_BranchID)
+{
+EXEC SQL BEGIN DECLARE SECTION;
+
+char h_branchLocation[30];
+char h_branchRegion[10];
+long int h_accountNo;
+long int h_branchBM;
+long int h_branchID;
+
+EXEC SQL END DECLARE SECTION;
+h_branchID = p_BranchID;
+
+EXEC SQL SELECT  location, region, accountno, branchmanager INTO  :h_branchLocation, :h_branchRegion, :h_accountNo, :h_branchBM FROM branch WHERE branchID = :h_branchID AND status = 1;
+
+Branch l_tempBranch(p_BranchID, h_branchLocation, h_branchRegion, h_accountNo, h_branchBM);
+
+return l_tempBranch;
+
+
+}
+
+
+
+int Bank::dbRequestBlockATMCard(Customer &p_CustomerObj)
+{
+  EXEC SQL BEGIN DECLARE SECTION;
+
+   long int h_CustomerID;
+   char h_type[30]="Block ATM Card";
+   char h_status[11]="blocked";
+   long int h_requestID;
+   char h_stat[11];
+   const char h_tstatus[11]={'b','l','o','c','k','e','d',' ',' ',' '};
+  EXEC SQL END DECLARE SECTION;
+  EXEC SQL CONNECT :"user11@tcsghy" identified by :"tcsghy";
+  h_CustomerID = p_CustomerObj.getCustomerId();
+  
+  EXEC SQL SELECT atmstatus into :h_stat from customer WHERE CustomerID=:h_CustomerID;
+  if(strcmp(h_stat,h_tstatus)==0)
+  {
+ // cout<<"\n ATMCard is already Blocked";
+  return 0;
+  }
+  EXEC SQL UPDATE CUSTOMER SET atmstatus=:h_status WHERE CustomerID=:h_CustomerID;
+  EXEC SQL INSERT INTO CREQUEST VALUES(requestid.NextVal,:h_CustomerID,:h_type); 
+  cout<<"\n\n Request is generated";
+  EXEC SQL SELECT requestid.currval into :h_requestID from dual;
+  cout<<"\n\n Requestid is: "<<h_requestID;
+  if(sqlca.sqlcode == 0)
+  {
+   EXEC SQL COMMIT;
+   EXEC SQL COMMIT WORK RELEASE;
+   return 1;
+  }
+  else
+   return 0;
+
+}
+
+int Bank :: findCustomerID(long int p_CustomerID)
+{
+ EXEC SQL BEGIN DECLARE SECTION;
+   char h_dob[11];
+   char h_Name[31];
+   char h_Gender;
+   char h_Address[31];
+ char h_AtmStatus[11];
+int h_Count=0;
+long int h_CustomerID=p_CustomerID;
+EXEC SQL END DECLARE SECTION;
+ EXEC SQL CONNECT :"user11@tcsghy" identified by :"tcsghy";
+EXEC SQL select count(1) INTO :h_Count from customer where customerID=:h_CustomerID AND status=1;
+if(h_Count==0)
+{
+cout<<"\n Customer doesnot exists";
+return 0;
+}
+else
+{
+ EXEC SQL SELECT CUSTOMERID , NAME , DOB , GENDER , ADDRESS , ATMSTATUS INTO :h_CustomerID , :h_Name , :h_dob , :h_Gender , :h_Address, :h_AtmStatus
+   FROM CUSTOMER WHERE CUSTOMERID=:h_CustomerID ;
+cout<<"\nCustomerid:   "<<h_CustomerID<<"\nName:   "<<h_Name<<"\nDOB:   "<<h_dob<<"\nAddress:   "<<h_Address<<"\nAtmStatus:   "<<h_AtmStatus;
+return 1;
+}
+ if(sqlca.sqlcode == 0)
+  {
+   EXEC SQL COMMIT;
+   EXEC SQL COMMIT WORK RELEASE;
+   return 1;
+ }
+else
+
+return 0;
+}
+
+int Bank :: findAccountno(long int p_accountno)
+{
+AccountUI Accobj;
+EXEC SQL BEGIN DECLARE SECTION;
+   char h_dob[12];
+   char h_Name[21];
+   char h_Gender;
+   char h_Address[31];
+    long int h_CustomerID;
+   double h_balance;
+   const char h_savings[11]={'s','a','v','i','n','g','s',' ',' ',' '};
+   const char h_fixed[11]={'f','i','x','e','d',' ',' ',' ',' ',' '};
+   const char h_current[11]={'c','u','r','r','e','n','t',' ',' ',' '};
+   char h_typestat[11];
+   
+int h_Count=0;
+long int h_accountno=p_accountno;
+EXEC SQL END DECLARE SECTION;
+ EXEC SQL CONNECT :"user11@tcsghy" identified by :"tcsghy";
+EXEC SQL select count(1) INTO :h_Count from account where accountno=:h_accountno;
+
+if(h_Count==0)
+return 0;
+else
+{
+EXEC SQL SELECT CUSTOMERID INTO :h_CustomerID from ACCOUNT WHERE accountno=:h_accountno;
+EXEC SQL SELECT NAME , DOB , GENDER , ADDRESS INTO :h_Name , :h_dob , :h_Gender , :h_Address FROM CUSTOMER WHERE CUSTOMERID=:h_CustomerID ; 
+EXEC SQL SELECT BALANCE INTO :h_balance from account where accountno=:h_accountno;
+//Accobj.displayfind(h_CustomerID,h_Name,h_dob,h_Address,h_typestat,h_balance);
+//cout<<"\nCustomerID: "<<h_CustomerID<<"\nName: "<<h_Name<<"\nDate of Birth: "<<h_dob<<"\nAddress: "<<h_Address<<"\nBalance: "<<h_balance;
+EXEC SQL SELECT type INTO :h_typestat FROM ACCOUNT WHERE accountno=:h_accountno;
+Accobj.displayfind(h_CustomerID,h_Name,h_dob,h_Address,h_typestat,h_balance);
+
+if(strcmp(h_typestat,h_savings)==0)
+{
+return 1;
+}
+else if(strcmp(h_typestat,h_current)==0)
+{
+return 2;
+}
+else
+{
+return 3;
+}
+ EXEC SQL COMMIT;
+ EXEC SQL COMMIT WORK RELEASE;
+}
+}
+
+int Bank :: findAccountno1(long int p_accountno)
+{
+   AccountUI Accobj;
+   EXEC SQL BEGIN DECLARE SECTION;
+   char h_dob[12];
+   char h_Name[21];
+   char h_Gender;
+   char h_Address[31];
+    long int h_CustomerID;
+   double h_balance;
+   const char h_savings[11]={'s','a','v','i','n','g','s',' ',' ',' '};
+   const char h_fixed[11]={'f','i','x','e','d',' ',' ',' ',' ',' '};
+   const char h_current[11]={'c','u','r','r','e','n','t',' ',' ',' '};
+   char h_typestat[11];
+
+   int h_Count=0;
+   long int h_accountno=p_accountno;
+   EXEC SQL END DECLARE SECTION;
+
+   EXEC SQL CONNECT :"user11@tcsghy" identified by :"tcsghy";
+          
+   EXEC SQL select count(1) INTO :h_Count from account where accountno=:h_accountno;
+
+   if(h_Count==0)
+     return 0;
+   else
+   {
+       EXEC SQL SELECT CUSTOMERID INTO :h_CustomerID from ACCOUNT WHERE accountno=:h_accountno;
+       EXEC SQL SELECT NAME , DOB , GENDER , ADDRESS INTO :h_Name , :h_dob , :h_Gender , :h_Address FROM CUSTOMER WHERE CUSTOMERID=:h_CustomerID ;
+       EXEC SQL SELECT BALANCE INTO :h_balance from account where accountno=:h_accountno;
+       //Accobj.displayfind(h_CustomerID,h_Name,h_dob,h_Address,h_typestat,h_balance);
+       //cout<<"\nCustomerID: "<<h_CustomerID<<"\nName: "<<h_Name<<"\nDate of Birth: "<<h_dob<<"\nAddress: "<<h_Address<<"\nBalance: "<<h_balance;
+       EXEC SQL SELECT type INTO :h_typestat FROM ACCOUNT WHERE accountno=:h_accountno;
+       //Accobj.displayfind(h_CustomerID,h_Name,h_dob,h_Address,h_typestat,h_balance);
+
+       if(strcmp(h_typestat,h_savings)==0)
+       {
+           return 1;
+       }
+       else if(strcmp(h_typestat,h_current)==0)
+            {
+                  return 2;
+            }
+            else
+               {
+                    return 3;
+               }
+     EXEC SQL COMMIT;
+     EXEC SQL COMMIT WORK RELEASE;
+  }
+}
+
+
+int Bank:: dbInitiateChequeBookRequest(long int p_accountno,long int p_customerid)
+{
+ EXEC SQL BEGIN DECLARE SECTION;
+ int h_id;
+ char h_Chequetype[21]="-page cheque book";
+ char h_CharCheques[25];
+ int h_Cheques;
+ long int h_accountno;
+ char h_type[30];
+ char h_dates[30];
+ int l_limit;
+ long int h_account;
+ long int h_customerid;
+ char l_type1[11];
+ double h_balance;
+ EXEC SQL END DECLARE SECTION;
+ AccountUI aui;
+ h_accountno=p_accountno;
+ h_customerid=p_customerid;
+ 
+ 
+ 
+ EXEC SQL SELECT COUNT(1) INTO :l_limit FROM account WHERE accountno=:h_accountno AND customerid=:h_customerid AND status=1;
+ if(l_limit==0)
+ {
+  aui.displayNoRecords();
+  return 0;
+ }
+ EXEC SQL SELECT COUNT(1) INTO :l_limit FROM request WHERE accountno=:h_accountno;
+ if(l_limit!=0)
+ {
+ aui.displayRequestGenerated();
+ return 0;
+ }
+
+
+  h_Cheques=aui.getNumberOfCheques();
+  if(h_Cheques==50)
+ {
+   h_CharCheques[0]='5';
+   h_CharCheques[1]='0';
+   h_CharCheques[2]=0;
+ }
+ else if(h_Cheques=100)
+ {
+   h_CharCheques[0]='1';
+   h_CharCheques[1]='0';
+    h_CharCheques[2]='0';
+ }
+ strcat(h_CharCheques,h_Chequetype);
+
+
+ EXEC SQL SELECT balance INTO :h_balance FROM account WHERE accountno=:h_accountno;
+ if(h_balance<h_Cheques)
+ {
+  aui.displayMessage("Cheque Book request failed as balance is less than Rs.100/- ");
+  return 0;
+ }
+  EXEC SQL SELECT type INTO :l_type1 FROM account WHERE accountno=:h_accountno AND customerid=:h_customerid;
+ char p_type[11]={'s','a','v','i','n','g','s',' ',' ',' '};
+ char p_type1[11]={'c','u','r','r','e','n','t',' ',' ',' '};
+if(strcmp(l_type1,p_type)==0)
+ {
+// cout<<"in savings"<<endl;
+  EXEC SQL UPDATE account set balance=(balance-:h_Cheques) WHERE accountno=:h_accountno AND customerid=:h_customerid;
+  EXEC SQL COMMIT;
+    EXEC SQL UPDATE savingsaccount set balance=(balance-:h_Cheques) WHERE accountno=:h_accountno AND customerid=:h_customerid;
+ EXEC SQL COMMIT;
+  }
+else if(strcmp(l_type1,p_type1)==0)
+ {
+  // cout<<"in current"<<endl;
+
+  EXEC SQL UPDATE account set balance=(balance-:h_Cheques) WHERE accountno=:h_accountno AND customerid=:h_customerid;
+  EXEC SQL COMMIT;
+    EXEC SQL UPDATE currentaccount set balance=(balance-:h_Cheques) WHERE accountno=:h_accountno AND customerid=:h_customerid;
+ EXEC SQL COMMIT;
+ }
+else
+{
+ aui.displayMessage("Account must be of either a current/savings account");
+  return 0;
+ }
+
+
+
+
+ EXEC SQL INSERT INTO REQUEST VALUES(requestid.NextVal,:h_accountno,:h_CharCheques,SYSDATE);
+ EXEC SQL COMMIT;
+  EXEC SQL SELECT requestid,accountno,type,reqdate INTO :h_id,:h_account,:h_type,:h_dates FROM request WHERE accountno=:h_accountno;
+ int l_id=h_id;
+ long int l_accountno=h_account;
+ char l_type[30];
+ strcpy(l_type,h_type);
+ char l_dates[30];
+ strcpy(l_dates,h_dates);
+ aui.displayDetails(l_id,l_accountno,l_type,l_dates,l_type1,h_Cheques);
+ return 0;
+
+ }
+
+int Bank::dbGetAccountBalance(long int p_accountno,long int p_customerid)
+{
+ EXEC SQL BEGIN DECLARE SECTION;
+ char h_type[11];
+ long int h_customerid;
+ long h_acc;
+ long h_bal;
+ int l_limit;
+ long int h_accountno;
+ EXEC SQL END DECLARE SECTION;
+ h_accountno=p_accountno;
+ h_customerid=p_customerid;
+ AccountUI aui;
+ EXEC SQL SELECT COUNT(1) INTO :l_limit FROM account WHERE customerid=:h_customerid AND accountno=:h_accountno AND status=1;
+ if(l_limit==0)
+ {
+  aui.displayNoRecords();
+  return 0;
+ }
+ EXEC SQL SELECT accountno,balance,type,customerid INTO :h_acc,:h_bal,:h_type,:h_customerid FROM account WHERE accountno=:h_accountno;
+ char p_type[11]={'f','i','x','e','d',' ',' ',' ',' ',' '};
+
+ if(strcmp(h_type,p_type)==0)
+ {
+  aui.displayMessage("Account must be of either a current/savings account");
+  return 0;
+ }
+ aui.displayRequest(h_acc,h_bal,h_type,h_customerid);
+ if(sqlca.sqlcode==0)
+ {
+  EXEC SQL COMMIT;
+  return 1;
+ }
+ else
+ return 0;
+}
+
+
+int Bank :: DeactivateCustomer(long int p_CustomerID)
+{
+
+EXEC SQL BEGIN DECLARE SECTION;
+
+   long int h_CustomerID;
+   int h_Age;
+   char h_Name[31];
+   char h_Gender;
+   char h_Address[31];
+   char h_AtmStatus[11];
+   char h_dob[30];
+   int h_Status;
+   char ch;
+
+   EXEC SQL END DECLARE SECTION;
+   EXEC SQL CONNECT :"user11@tcsghy" identified by :"tcsghy";
+   h_CustomerID=p_CustomerID;
+   CustomerUI l_UIobj;
+  EXEC SQL SELECT STATUS INTO :h_Status FROM CUSTOMER WHERE CUSTOMERID=:h_CustomerID;
+if(h_Status==1)
+{
+   EXEC SQL SELECT NAME , DOB , GENDER , ADDRESS , ATMSTATUS INTO  :h_Name , :h_dob , :h_Gender , :h_Address, :h_AtmStatus
+   FROM CUSTOMER WHERE CUSTOMERID=:h_CustomerID ;
+   l_UIobj.displayview(h_CustomerID,h_Name,h_dob,h_Address,h_AtmStatus);
+   cout<<"\nEnter Y to deactivate this account : ";
+   cin>>ch;
+   if(ch == 'y' || ch == 'Y')
+{
+   EXEC SQL UPDATE customer SET status=0 WHERE CUSTOMERID=:h_CustomerID ;
+ EXEC SQL COMMIT;  
+EXEC SQL UPDATE account SET status=0 WHERE CUSTOMERID=:h_CustomerID ;
+ EXEC SQL COMMIT;
+   cout<<"\nCustomer is deactivated";
+
+ return 1;
+}
+else
+{cout<<"\nCustomer is not deactivated";}
+}
+
+else
+ {cout<<"\nCustomer is not active";}
+
+   if(sqlca.sqlcode==0)
+   {
+       EXEC SQL COMMIT;
+       EXEC SQL COMMIT WORK RELEASE;
+       return 1;
+   }
+ return 0;
+
+}
+
+
+int Bank :: updateCustomerGender(long int p_CustomerID)
+{
+EXEC SQL BEGIN DECLARE SECTION;
+
+   long int h_CustomerID;
+   int h_Age;
+   char h_Name[31];
+   char h_Gender;
+   char h_Address[31];
+   char h_AtmStatus[11];
+   int h_Status;
+EXEC SQL END DECLARE SECTION;
+   EXEC SQL CONNECT :"user11@tcsghy" identified by :"tcsghy";
+   h_CustomerID=p_CustomerID;
+   CustomerUI l_UIobj;
+   h_Gender=l_UIobj.getCustomerGender();
+ EXEC SQL SELECT STATUS INTO :h_Status FROM CUSTOMER WHERE CUSTOMERID=:h_CustomerID;
+if(h_Status==1)
+{
+   EXEC SQL UPDATE customer SET GENDER = :h_Gender WHERE CUSTOMERID=:h_CustomerID;
+}
+else
+
+{
+cout<<"\nCustomer is not deactivated";
+} 
+  if(sqlca.sqlcode==0)
+   {
+       EXEC SQL COMMIT;
+       cout<<"\nCustomer Gender updated successfully";
+       EXEC SQL COMMIT WORK RELEASE;
+       return 1;
+   }
+   else
+      return 0;
+}
+
+int Bank :: updateCustomerAddress(long int p_CustomerID)
+{
+EXEC SQL BEGIN DECLARE SECTION;
+   long int h_CustomerID;
+   int h_Age;
+   char h_Name[31];
+   char h_Gender;
+   char h_Address[31];
+   char h_AtmStatus[11];
+   int h_Status;
+EXEC SQL END DECLARE SECTION;
+   EXEC SQL CONNECT :"user11@tcsghy" identified by :"tcsghy";
+   h_CustomerID=p_CustomerID;
+   CustomerUI l_UIobj;
+   strcpy(h_Address,l_UIobj.getCustomerAddress().c_str());
+ EXEC SQL SELECT STATUS INTO :h_Status FROM CUSTOMER WHERE CUSTOMERID=:h_CustomerID;
+if(h_Status==1)
+{ 
+  EXEC SQL UPDATE customer SET ADDRESS=:h_Address WHERE CUSTOMERID=:h_CustomerID;
+}
+else
+
+{
+cout<<"\nCustomer is not deactivated";
+}
+   if(sqlca.sqlcode==0)
+   {
+       EXEC SQL COMMIT;
+         cout<<"\nCustomer Address updated successfully";
+       EXEC SQL COMMIT WORK RELEASE;
+       return 1;
+   }
+   else
+      return 0;
+}
+
+
+int Bank :: updateCustomerName1(long int p_CustomerID)
+{
+EXEC SQL BEGIN DECLARE SECTION;
+   long int h_CustomerID;
+   int h_Age;
+   char h_Name[31];
+   char h_Gender;
+   char h_Address[31];
+   char h_AtmStatus[11];
+   int h_Status;
+EXEC SQL END DECLARE SECTION;
+   EXEC SQL CONNECT :"user11@tcsghy" identified by :"tcsghy";
+   h_CustomerID=p_CustomerID;
+   CustomerUI l_UIobj;
+   strcpy(h_Name,l_UIobj.getCustomerName().c_str());
+EXEC SQL SELECT STATUS INTO :h_Status FROM CUSTOMER WHERE CUSTOMERID=:h_CustomerID;
+if(h_Status==1)
+{ 
+  EXEC SQL UPDATE customer SET NAME=:h_Name WHERE CUSTOMERID=:h_CustomerID;
+}
+else
+
+{
+cout<<"\nCustomer is not deactivated";
+} 
+  if(sqlca.sqlcode==0)
+   {
+       EXEC SQL COMMIT;
+       cout<<"\nCustomer name updated successfully";
+       EXEC SQL COMMIT WORK RELEASE;
+       return 1;
+   }
+   else
+      return 0;
+}
+
+int Bank :: updateCustomerdob(long int p_CustomerID)
+{
+EXEC SQL BEGIN DECLARE SECTION;
+   long int h_CustomerID;
+   char h_dob[30];
+   char h_Name[31];
+   char h_Gender;
+   char h_Address[31];
+   char h_AtmStatus[11];
+   int h_Status;
+EXEC SQL END DECLARE SECTION;
+   EXEC SQL CONNECT :"user11@tcsghy" identified by :"tcsghy";
+   h_CustomerID=p_CustomerID;
+   CustomerUI l_UIobj;
+   strcpy(h_dob,l_UIobj.getCustomerdob().c_str());
+   EXEC SQL UPDATE customer SET DOB=:h_dob WHERE CUSTOMERID=:h_CustomerID;
+   if(sqlca.sqlcode==0)
+   {
+       EXEC SQL COMMIT;
+      cout<<"\nCustomer date of birth updated successfully";
+       EXEC SQL COMMIT WORK RELEASE;
+       return 1;
+   }
+   else
+      return 0;
+}
+
+
+int Bank::dbAddCustomer(Customer &p_CustomerObj)
+{
+  EXEC SQL BEGIN DECLARE SECTION;
+
+  long int h_CustomerID;
+   char h_dob[30];
+   char h_Name[31];
+   char h_Gender;
+   char h_Address[31];
+   char h_AtmStatus[30];
+   long int h_Customer_Id;
+   int h_Status = 1;
+
+  EXEC SQL END DECLARE SECTION;
+  EXEC SQL CONNECT :"user11@tcsghy" identified by :"tcsghy";
+ CustomerUI l_UIobj;
+
+ // h_Age = p_CustomerObj.getCustomerAge();
+
+  strcpy(h_Name, p_CustomerObj.getCustomerName().c_str());
+  strcpy(h_dob, p_CustomerObj.getCustomerdob().c_str());
+  h_Gender= p_CustomerObj.getCustomerGender();
+  strcpy(h_Address, p_CustomerObj.getCustomerAddress().c_str());
+
+
+
+  EXEC SQL INSERT INTO CUSTOMER VALUES(SEQ_CUSTOMERID.NEXTVAL,:h_Name,:h_dob,:h_Gender,:h_Address,:h_Status,'Active');
+
+  cout<<"\nPlease wait....";
+  if(sqlca.sqlcode == 0)
+  {
+    EXEC SQL select SEQ_CUSTOMERID.currval into :h_Customer_Id from dual;
+   EXEC SQL COMMIT;
+   EXEC SQL SELECT CUSTOMERID , NAME , DOB , ADDRESS , ATMSTATUS  INTO :h_CustomerID , :h_Name , :h_dob , :h_Address, :h_AtmStatus
+   FROM CUSTOMER WHERE CUSTOMERID=:h_Customer_Id;
+   cout<<"\n\nCustomer is successfully Added\n";
+   cout<<"\nPlease check the customer details again, use update option to rectify any mistakes";
+l_UIobj.displayview(h_CustomerID,h_Name,h_dob,h_Address,h_AtmStatus);
+ /*  cout<<"\n\n              CUSTOMER DETAILS";
+   cout<<"\n\t----------------------------------";
+   cout<<"\n\n\tCUSTOMERID      : "<<h_CustomerID   ;
+   cout<<"\n\n\tName            : "<<h_Name          ;
+   cout<<"\n\n\tDate of birth   : "<<h_dob           ;
+   cout<<"\n\n\tAddress         : "<<h_Address       ;
+   cout<<"\n\n\tAtm Status      : "<<h_AtmStatus     ;
+   cout<<"\n\t-----------------------------------";*/
+   EXEC SQL COMMIT WORK RELEASE;
+   return 1;
+  }
+  else
+   return 0;
+}
+
+
+
+	int Bank::dbViewCustomer(Customer &p_CustomerObj)
+	{
+
+	 EXEC SQL BEGIN DECLARE SECTION;
+	   int h_Status;
+
+	    char h_dob[30];
+	   char h_Name[31];
+	   char h_Gender;
+	   char h_Address[31];
+	   char h_AtmStatus[11];
+	    long int h_CustomerID;
+	  EXEC SQL END DECLARE SECTION;
+	  EXEC SQL CONNECT :"user11@tcsghy" identified by :"tcsghy";
+
+	h_CustomerID= p_CustomerObj.getCustomerId();
+	 EXEC SQL SELECT STATUS INTO :h_Status FROM CUSTOMER WHERE CUSTOMERID=:h_CustomerID;
+	if(h_Status!=0)
+	{
+
+
+	  EXEC SQL SELECT NAME , DOB , GENDER , ADDRESS , ATMSTATUS INTO  :h_Name , :h_dob , :h_Gender , :h_Address, :h_AtmStatus
+	   FROM CUSTOMER WHERE CUSTOMERID=:h_CustomerID ;
+
+	  cout<<"\n\n              CUSTOMER DETAILS";
+	   cout<<"\n\t----------------------------------";
+	   cout<<"\n\n\tCUSTOMERID      : "<<h_CustomerID   ;
+	   cout<<"\n\n\tName            : "<<h_Name          ;
+	   cout<<"\n\n\tDate of birth   : "<<h_dob           ;
+	   cout<<"\n\n\tAddress         : "<<h_Address       ;
+	   cout<<"\n\n\tAtm Status      : "<<h_AtmStatus     ;
+	   cout<<"\n\t-----------------------------------";
+
+
+	//cout<<"\nCustomer Details";
+	//cout<<"\nName : "<<h_Name<<"\nDate of Birth : " <<h_dob <<"Gender : " <<h_Gender <<"\nAddress : "<<h_Address<<"\nAtmStatus : "<<h_AtmStatus;
+	}
+	else
+	{
+	cout<<"\nThis customer is not Active";
+	}
+	if(sqlca.sqlcode == 0)
+	{
+	 EXEC SQL COMMIT;
+	 EXEC SQL COMMIT WORK RELEASE;
+
+	}
+	else
+	return 0;
+	}
+
+	int Bank :: findCustomerID1(long int p_CustomerID)
+	{
+ EXEC SQL BEGIN DECLARE SECTION;
+   char h_dob[11];
+   char h_Name[31];
+   char h_Gender;
+   char h_Address[31];
+ char h_AtmStatus[11];
+int h_Count=0;
+long int h_CustomerID=p_CustomerID;
+EXEC SQL END DECLARE SECTION;
+ EXEC SQL CONNECT :"user11@tcsghy" identified by :"tcsghy";
+EXEC SQL select count(1) INTO :h_Count from customer where customerID=:h_CustomerID AND status=1;
+if(h_Count==0)
+{
+//cout<<"\n Customer doesnot exists";
+return 0;
+}
+else
+{
+ EXEC SQL SELECT CUSTOMERID , NAME , DOB , GENDER , ADDRESS , ATMSTATUS INTO :h_CustomerID , :h_Name , :h_dob , :h_Gender , :h_Address, :h_AtmStatus
+   FROM CUSTOMER WHERE CUSTOMERID=:h_CustomerID ;
+//cout<<"\nCustomerid:   "<<h_CustomerID<<"\nName:   "<<h_Name<<"\nDOB:   "<<h_dob<<"\nAddress:   "<<h_Address<<"\nAtmStatus:   "<<h_AtmStatus;
+return 1;
+}
+ if(sqlca.sqlcode == 0)
+  {
+   EXEC SQL COMMIT;
+   EXEC SQL COMMIT WORK RELEASE;
+   return 1;
+ }
+else
+
+return 0;
+}
+
+
+long int Bank::addBranch(Branch &p_Branch)
+{
+EXEC SQL BEGIN DECLARE SECTION;
+
+char h_branchLocation[30];
+char h_branchRegion[10];
+
+long int h_branchBM;
+long int h_branchID;
+int l_limit=0;
+EXEC SQL END DECLARE SECTION;
+EXEC SQL CONNECT :"user11@tcsghy" identified by :"tcsghy";
+
+strcpy(h_branchLocation, p_Branch.getBranchLocation().c_str());
+strcpy(h_branchRegion, p_Branch.getBranchRegion().c_str());
+h_branchBM = p_Branch.getBM();
+
+EXEC SQL SELECT COUNT(1) INTO :l_limit FROM employee WHERE employeeid=:h_branchBM AND edesignation='Branch Manager';
+EXEC SQL COMMIT;
+if(l_limit!=1)
+{
+return 1;
+}
+l_limit=0;
+EXEC SQL SELECT COUNT(1) INTO :l_limit FROM branch where branchmanager=:h_branchBM;
+EXEC SQL COMMIT;
+if(l_limit!=0)
+{
+return 2;
+}
+EXEC SQL INSERT INTO Branch VALUES(branchid.NextVal, :h_branchLocation, :h_branchRegion, 0, :h_branchBM, 1);
+EXEC SQL COMMIT;
+if(sqlca.sqlcode==0)
+   {
+   EXEC SQL SELECT branchid.CurrVal INTO :h_branchID FROM DUAL;
+   cout<<"\n i am in"<< h_branchID;
+   EXEC SQL COMMIT;
+   long int l_branchID = h_branchID; 
+   return l_branchID;
+   }
+else
+return 0;
+}
+
+int Bank::findBranch(long int p_BranchID)
+{
+EXEC SQL BEGIN DECLARE SECTION;
+
+long int h_BranchID;
+int h_count = 0;
+
+EXEC SQL END DECLARE SECTION;
+
+h_BranchID = p_BranchID;
+
+EXEC SQL SELECT count(1) INTO :h_count FROM branch WHERE branchID =:h_BranchID AND status = 1;
+int l_count = h_count;
+return l_count;
+}
+
+int Bank::deleteBranch(long int p_BranchID)
+{
+EXEC SQL BEGIN DECLARE SECTION;
+
+long int h_BranchID;
+
+EXEC SQL END DECLARE SECTION;
+
+h_BranchID = p_BranchID;
+EXEC SQL UPDATE branch SET status = 0 WHERE branchID = :h_BranchID;
+if(sqlca.sqlcode==0)
+   {
+   EXEC SQL COMMIT;
+
+   return 1;
+   }
+else
+return 0;
+
+
+}
+
+
+int Bank::updateBranch(Branch &p_branch)
+{
+EXEC SQL BEGIN DECLARE SECTION;
+
+char h_branchLocation[30]="";
+char h_branchRegion[10]="";
+long int h_accountNo=0;
+long int h_branchBM=0;
+long int h_branchID=0;
+
+EXEC SQL END DECLARE SECTION;
+h_branchID = p_branch.getBranchId();
+h_branchBM = p_branch.getBM();
+strcpy(h_branchLocation, p_branch.getBranchLocation().c_str());
+strcpy(h_branchRegion, p_branch.getBranchRegion().c_str());
+
+if(h_branchBM != 0)
+   EXEC SQL UPDATE branch SET branchmanager = :h_branchBM WHERE branchID = :h_branchID;
+else if(h_branchLocation[0] != '\0')
+   EXEC SQL UPDATE branch SET location = :h_branchLocation WHERE branchID = :h_branchID;
+else if(h_branchRegion != '\0')
+   EXEC SQL UPDATE branch SET region = :h_branchRegion WHERE branchID = :h_branchID;
+else
+return 0;
+
+if(sqlca.sqlcode==0)
+   {
+   EXEC SQL COMMIT;
+
+   return 1;
+   }
+else
+return 0;
+
+}
+
+
+
+
+int Bank::checklogin(Login &p_LoginObj)
+
+{
+EXEC SQL BEGIN DECLARE SECTION;
+
+long int h_username;
+
+char h_password[11];
+
+int h_count;
+
+EXEC SQL END DECLARE SECTION;
+
+        h_username=p_LoginObj.getUsername();
+        strcpy(h_password,p_LoginObj.getPassword().c_str());
+
+
+
+               EXEC SQL SELECT count(1) into :h_count from LOGIN where USERNAME = :h_username and PASSWORD = :h_password;
+
+    if(sqlca.sqlcode==0 && h_count==1)
+
+    {
+
+        return 1;
+
+    }
+
+
+    return 0;
+
+
+}
+
+
+
+int Bank::changepassword(Login &p_LoginObj)
+{
+	
+EXEC SQL BEGIN DECLARE SECTION;
+
+long int h_username;
+
+char h_seqans1[16];
+
+char h_seqans2[16];
+char h_newpassword[11];
+EXEC SQL END DECLARE SECTION;
+	h_username=p_LoginObj.getUsername();
+
+	strcpy(h_seqans1,p_LoginObj.getSeqans1().c_str());
+
+	strcpy(h_seqans2,p_LoginObj.getSeqans2().c_str());
+	strcpy(h_newpassword,p_LoginObj.getNewpassword().c_str());
+	EXEC SQL UPDATE LOGIN SET PASSWORD = :h_newpassword WHERE SEQANS1 = :h_seqans1 AND SEQANS2 = :h_seqans2 AND USERNAME = :h_username;
+	if(sqlca.sqlcode==0)
+
+    {
+
+        return 1;
+
+    }
+
+
+    return 0;
+}
+
+int Bank::changepassword2(Login &p_LoginObj)
+{
+EXEC SQL BEGIN DECLARE SECTION;
+
+long int h_username;
+
+char h_password[15];
+
+char h_newpassword[11];
+EXEC SQL END DECLARE SECTION;
+	h_username=p_LoginObj.getUsername();
+
+
+	strcpy(h_password,p_LoginObj.getPassword().c_str());
+
+	strcpy(h_newpassword,p_LoginObj.getNewpassword().c_str());
+	
+	EXEC SQL UPDATE LOGIN SET PASSWORD = :h_newpassword WHERE USERNAME = :h_username and PASSWORD = :h_password;
+
+
+	
+	if(sqlca.sqlcode==0)
+
+    {
+	EXEC SQL COMMIT;
+        return 0;
+
+        
+    }
+
+
+
+    else
+    return 1;
+    
+
+}
+
+long int Bank::addEmployee(Employee &p_employee, Login &p_login)
+{
+   EXEC SQL BEGIN DECLARE SECTION;
+
+   long int h_employeeId;
+   char h_employeeName[31];
+   char h_employeeDOB[21];
+   char h_employeeGender;
+   char h_employeeAddress[31];
+   char h_employeeDesignation[31];
+   int h_employeeStatus;
+   int h_flag;
+
+   long int h_username;
+   char h_seqans1[16];
+   char h_seqans2[16];
+   char h_newpassword[11];
+
+   EXEC SQL END DECLARE SECTION;
+
+   h_employeeStatus=1;
+   strcpy(h_employeeName,p_employee.getEmployeeName().c_str());
+   strcpy(h_employeeDOB,p_employee.getEmployeeDOB().c_str());
+   EXEC SQL SELECT (SYSDATE-to_date(:h_employeeDOB,'dd-mm-yyyy'))/365 INTO :h_flag FROM DUAL;
+   if(h_flag<20 || h_flag>30)
+     {
+       EmployeeUI l_UIobj;
+       l_UIobj.displayMessage("\nYou are not satisfying the year criteria. You should be between 20 and 30.Please enter again...\n");
+        return 0;
+     }
+   h_employeeGender = p_employee.getEmployeeGender();
+   strcpy(h_employeeAddress,p_employee.getEmployeeAddress().c_str());
+   strcpy(h_employeeDesignation,p_employee.getEmployeeDesignation().c_str());
+
+   EXEC SQL INSERT INTO employee VALUES(employeeid.NextVal, :h_employeeName, :h_employeeGender, :h_employeeAddress, :h_employeeDesignation, :h_employeeStatus, to_date(:h_employeeDOB,'dd-mm-yyyy'));
+
+   if(sqlca.sqlcode==0)
+   {
+      EXEC SQL COMMIT;
+      EXEC SQL SELECT employeeid.CurrVal INTO :h_employeeId FROM DUAL;
+      long int l_empId;
+      l_empId=h_employeeId;
+       strcpy(h_seqans1,p_login.getSeqans1().c_str());
+
+        strcpy(h_seqans2,p_login.getSeqans2().c_str());
+        strcpy(h_newpassword,p_login.getNewpassword().c_str());
+      // cout<<h_seqans1<<endl<<h_seqans2<<endl<<h_newpassword<<endl<<h_employeeId;
+       EXEC SQL INSERT INTO login VALUES(:h_employeeId, :h_newpassword, :h_seqans1, :h_seqans2);
+       EXEC SQL COMMIT;
+       return l_empId;
+   }
+   else
+      return 0;
+}
+
+
+
+Employee Bank::viewEmployee(long int p_employeeId)
+{
+   EXEC SQL BEGIN DECLARE SECTION;
+
+   long int h_employeeId;
+   char h_employeeName[31];
+   char h_employeeDOB[21];
+   char h_employeeGender;
+   char h_employeeAddress[31];
+   char h_employeeDesignation[31];
+   int h_employeeStatus;
+
+   EXEC SQL END DECLARE SECTION;
+
+   h_employeeId=p_employeeId;
+   EXEC SQL SELECT ENAME,to_char(DOB,'dd-mm-yyyy'),EGENDER,EADDRESS,EDESIGNATION,ESTATUS INTO :h_employeeName, :h_employeeDOB, :h_employeeGender, :h_employeeAddress, :h_employeeDesignation, :h_employeeStatus FROM employee WHERE EMPLOYEEID=:h_employeeId AND ESTATUS=1;
+   EXEC SQL COMMIT;
+   Employee l_tempEmployee(p_employeeId,h_employeeName,h_employeeDOB,h_employeeGender,h_employeeAddress,h_employeeDesignation,h_employeeStatus);
+   return l_tempEmployee;
+}
+
+int Bank::findEmployee(long int p_employeeId)
+{
+   EXEC SQL BEGIN DECLARE SECTION;
+   long int h_employeeId;
+   int h_count;
+   EXEC SQL END DECLARE SECTION;
+   h_count=0;
+   h_employeeId=p_employeeId;
+   EXEC SQL SELECT COUNT(1) INTO :h_count FROM employee WHERE EMPLOYEEID=:h_employeeId AND ESTATUS=1;
+   EXEC SQL COMMIT;
+   int l_count=h_count;
+   return l_count;
+}
+
+int Bank::updateEmployeeName(long int p_employeeId)
+{
+   EXEC SQL BEGIN DECLARE SECTION;
+
+   long int h_employeeId;
+   char h_employeeName[30];
+
+   EXEC SQL END DECLARE SECTION;
+   h_employeeId=p_employeeId;
+   EmployeeUI l_UIobj;
+   strcpy(h_employeeName,l_UIobj.getEmployeeName().c_str());
+   EXEC SQL UPDATE employee SET ENAME=:h_employeeName WHERE EMPLOYEEID=:h_employeeId AND ESTATUS=1;
+   if(sqlca.sqlcode==0)
+   {
+       EXEC SQL COMMIT;
+       return 1;
+   }
+   else
+      return 0;
+}
+
+
+
+int Bank::updateAccount(Account &p_Accobj)
+{
+EXEC SQL BEGIN DECLARE SECTION;
+ // char h_accountstatus[9];
+  long int h_accountno;
+  long int h_accno;
+  char h_acctype[11];
+  long int h_custid;
+  double h_accbalance;
+ // char h_status[10];
+    int h_status;
+ // char h_active[7]={'a','c','t','i','v','e'};
+ // char h_inactive[10]={'i','n','a','c','t','i','v','e'};
+  int h_active=1;
+  int h_inactive=0;
+
+
+
+  EXEC SQL END DECLARE SECTION;
+  h_accountno=p_Accobj.m_getAccountNo();
+
+
+   EXEC SQL SELECT accountno,type,CUSTOMERID,BALANCE,status INTO :h_accno,:h_acctype,:h_custid,:h_accbalance,:h_status FROM  account WHERE accountno=:h_accountno;
+   AccountUI l_accUI;
+   char nchoice=l_accUI.displayRecord(h_accno,h_acctype,h_custid,h_accbalance,h_status);
+
+   if ((nchoice=='y') || (nchoice=='Y'))
+
+
+   {
+
+if(h_status==0)
+     return 0;
+     else
+
+       {
+       cout<<"\n Account already active";
+
+      // EXEC SQL UPDATE account SET status=0 WHERE accountno=:h_accountno;
+      // EXEC SQL COMMIT;
+       }
+
+     if(h_status==1)
+       return 0;
+       else
+       {
+
+       EXEC SQL UPDATE account SET status=1 WHERE accountno=:h_accountno;
+       EXEC SQL COMMIT;
+       }
+
+
+     }
+
+ else return 0;
+  if(sqlca.sqlcode==0)
+     {
+       l_accUI.displayUpdate();
+       EXEC SQL COMMIT;
+ return 1;
+     }
+     else
+     {
+       return 0;
+     }
+
+ }
+
+
+
+
+int Bank::updateEmployeeAddress(long int p_employeeId)
+{
+   EXEC SQL BEGIN DECLARE SECTION;
+
+   long int h_employeeId;
+   char h_employeeAddress[30];
+
+   EXEC SQL END DECLARE SECTION;
+   h_employeeId=p_employeeId;
+    EmployeeUI l_UIobj;
+   strcpy(h_employeeAddress,l_UIobj.getEmployeeAddress().c_str());
+   EXEC SQL UPDATE employee SET EADDRESS=:h_employeeAddress WHERE EMPLOYEEID=:h_employeeId AND ESTATUS=1;
+
+   if(sqlca.sqlcode==0)
+   {
+       EXEC SQL COMMIT;
+       return 1;
+   }
+   else
+      return 0;
+}
+
+
+
+int Bank::updateEmployeeDesignation(long int p_employeeId)
+{
+   EXEC SQL BEGIN DECLARE SECTION;
+
+   long int h_employeeId;
+   char h_employeeDesignation[30];
+
+   EXEC SQL END DECLARE SECTION;
+   h_employeeId=p_employeeId;
+   EmployeeUI l_UIobj;
+   strcpy(h_employeeDesignation,l_UIobj.getEmployeeDesignation().c_str());
+   EXEC SQL UPDATE employee SET EDESIGNATION=:h_employeeDesignation WHERE EMPLOYEEID=:h_employeeId AND ESTATUS=1;
+
+   if(sqlca.sqlcode==0)
+   {
+       EXEC SQL COMMIT;
+       return 1;
+   }
+   else
+      return 0;
+}
+
+
+int Bank::deactivateEmployee(long int p_employeeId)
+{
+   EXEC SQL BEGIN DECLARE SECTION;
+
+   long int h_employeeId;
+
+   EXEC SQL END DECLARE SECTION;
+   h_employeeId=p_employeeId;
+   EXEC SQL UPDATE employee SET ESTATUS=0 WHERE EMPLOYEEID=:h_employeeId AND ESTATUS=1;
+   if(sqlca.sqlcode==0)
+   {
+       EXEC SQL COMMIT;
+       return 1;
+   }
+   else
+      return 0;
+}
+
+
+
+
+int Bank::accountStatementGeneration( long int p_accountno)
+{
+EXEC SQL BEGIN DECLARE SECTION;
+long int h_accountno;
+long int h_transactionID;
+char h_transactiondate[20];
+char h_type[10];
+double h_amount;
+char h_status[10];
+
+    EXEC SQL END DECLARE SECTION;
+h_accountno=p_accountno;
+    EXEC SQL DECLARE mycursor2 CURSOR for SELECT t.transactionID ,account.accountno,to_char(t.transactiondate,'dd-mm-yyyy'),t.type,t.amount FROM transaction t,account WHERE account.accountno=:h_accountno AND account.STATUS=1 ;
+    EXEC SQL OPEN mycursor2;
+    if(sqlca.sqlcode <0)
+    {
+        EXEC SQL CLOSE mycursor2;
+         EXEC SQL COMMIT;
+      return 0 ;
+    }
+    if(sqlca.sqlcode!=0)
+    {
+       EXEC SQL CLOSE mycursor2;
+       EXEC SQL COMMIT;
+       return 0;
+    }
+    else
+    {
+AccountUI l_accUI;
+l_accUI.displayTransactionHeader();
+       for(;;)
+       {
+
+long int l_accountno;
+long int l_transactionID;
+char l_transactiondate[20];
+char l_type[10];
+double l_amount;
+AccountUI l_accUI;
+
+            EXEC SQL WHENEVER NOT FOUND DO break;
+            EXEC SQL FETCH mycursor2 INTO :h_transactionID , :h_accountno,:h_transactiondate,:h_type,:h_amount ;
+            EXEC SQL COMMIT;
+            l_accountno=h_accountno;
+            l_transactionID=h_transactionID;
+            strcpy (l_transactiondate,h_transactiondate);
+            strcpy (l_type,h_type);
+            l_amount=h_amount;
+            if(sqlca.sqlcode<0)
+            {
+              EXEC SQL CLOSE mycursor2;
+              EXEC SQL COMMIT;
+              return 0;
+            }
+            l_accUI.displayTransaction(l_transactionID,l_accountno,l_transactiondate,l_type,l_amount);
+         }
+         EXEC SQL CLOSE mycursor2;
+         EXEC SQL COMMIT;
+         return 1;
+      }
+return 1;
+}
+
+vector<Account> Bank::dbViewAccount(long int p_CustID)
+{
+ vector<Account> accountlist;
+ EXEC SQL BEGIN DECLARE SECTION;
+ long int h_accountno;
+ char h_type[11];
+ long int h_CustID;
+ double h_accountbalance;
+ int l_limit;
+int h_accountstatus=0;
+ EXEC SQL END DECLARE SECTION;
+ h_CustID=p_CustID;
+ EXEC SQL DECLARE val CURSOR for SELECT *  FROM account where customerid=:h_CustID;
+ EXEC SQL OPEN val;
+ for(;;)
+ {
+  EXEC SQL WHENEVER NOT FOUND DO break;
+ EXEC SQL FETCH val INTO :h_accountno,:h_type,:h_CustID,:h_accountbalance,:h_accountstatus;
+ //cout<<"\n"<<h_accountstatus; 
+ if(sqlca.sqlcode<0)
+  {
+   return accountlist;
+  }
+ long int l_accountno=h_accountno;
+  char l_type[20];
+
+  int l_status;
+  long int l_CustID;
+  l_CustID=h_CustID;
+  double l_accountbalance=h_accountbalance;
+  strcpy(l_type,h_type);
+
+  l_status=h_accountstatus;
+  Account accountObj;
+  accountObj.m_setCustomerID(l_CustID);
+  accountObj.m_setAccountNo(l_accountno);
+  accountObj.m_setAccountType(l_type);
+  accountObj.m_setAccountStatus(l_status);
+  accountObj.m_setBalance(l_accountbalance);
+  accountlist.push_back(accountObj);
+    }
+  return accountlist;
+ }
+
+
+vector<Customer> Bank::ViewAllCustomer()
+{
+    EXEC SQL BEGIN DECLARE SECTION;
+
+    long int h_CustomerId;
+    char h_Name[30];
+    char h_DOB[20];
+    char h_Gender;
+    char h_Address[30];
+    long int h_accountno;
+    char h_ATMStatus[31];
+    char h_status[20];
+    EXEC SQL END DECLARE SECTION;
+    EXEC SQL CONNECT :"user11@tcsghy" identified by :"tcsghy";
+
+
+    vector<Customer> Customer_records;
+    EXEC SQL DECLARE mycursor1 CURSOR for SELECT * FROM customer WHERE STATUS=1;
+    EXEC SQL OPEN mycursor1;
+    if(sqlca.sqlcode <0)
+    {
+       return Customer_records ;
+    }
+    if(sqlca.sqlcode!=0)
+    {
+       EXEC SQL CLOSE mycursor1;
+       EXEC SQL COMMIT WORK RELEASE;
+       return Customer_records;
+    }
+    else
+    {
+       for(;;)
+       {
+            char l_CustName[30];
+            char l_CustDOB[20];
+            char l_CustAddress[30];
+            char l_CustATMStatus[30];
+            EXEC SQL WHENEVER NOT FOUND DO break;
+            EXEC SQL FETCH mycursor1 INTO :h_CustomerId, :h_Name, :h_DOB, :h_Gender, :h_Address,:h_status, :h_ATMStatus ;
+            strcpy(l_CustName,h_Name);
+            strcpy(l_CustAddress,h_Address);
+            strcpy(l_CustATMStatus,h_ATMStatus);
+            strcpy(l_CustDOB,h_DOB);
+            //l_employeeName=string.valueOf(h_employeeName);
+            //char l_employeeDOB[20];
+            //l_employeeDOB=to_char(h_employeeDOB,'dd-mm-yyyy');
+            if(sqlca.sqlcode<0)
+            {
+               return Customer_records;
+            }
+           Customer v (h_CustomerId, l_CustName, l_CustDOB, h_Gender, l_CustAddress, l_CustATMStatus);
+            Customer_records.push_back(v);
+         }
+         EXEC SQL CLOSE mycursor1;
+         return Customer_records;
+       EXEC SQL COMMIT WORK RELEASE;
+    }
+}
+
+vector<BranchAccount> Bank:: ViewAllBranchAccount()
+{
+    EXEC SQL BEGIN DECLARE SECTION;
+long int h_branchAccountNumber;
+long int h_branchId;
+double h_branchThreshold;
+double h_currentBalance;
+int h_status;
+
+    EXEC SQL END DECLARE SECTION;
+
+    vector<BranchAccount> AccountList;
+    EXEC SQL DECLARE mycursor6 CURSOR for SELECT * FROM BRANCHACCOUNT;
+    EXEC SQL OPEN mycursor6;
+    if(sqlca.sqlcode <0)
+    {
+        EXEC SQL CLOSE mycursor6;
+        EXEC SQL COMMIT ;
+        return AccountList ;
+    }
+    if(sqlca.sqlcode!=0)
+    {
+       EXEC SQL CLOSE mycursor6;
+       EXEC SQL COMMIT ;
+       return AccountList;
+
+    }
+    else
+    {
+       for(;;)
+       {
+
+     long int l_branchAccountNumber;
+     long int l_branchId;
+     double l_branchThreshold;
+     double l_currentBalance;
+     int l_status;       
+
+
+
+
+
+            /*char l_employeeName[30];
+            char l_employeeDOB[20];
+
+            char l_employeeAddress[30];
+            char l_employeeDesignation[30];*/
+
+
+
+            EXEC SQL WHENEVER NOT FOUND DO break;
+            EXEC SQL FETCH mycursor6 INTO :h_branchAccountNumber, :h_branchId, :h_branchThreshold, :h_currentBalance, :h_status ;
+              EXEC SQL COMMIT;
+            l_branchAccountNumber=h_branchAccountNumber;
+            l_branchId=h_branchId;
+            l_branchThreshold=h_branchThreshold;
+            l_currentBalance=h_currentBalance;
+            l_status=h_status;
+
+
+            if(sqlca.sqlcode<0)
+            {
+                 EXEC SQL CLOSE mycursor6;
+                 EXEC SQL COMMIT ;
+                 return AccountList;
+            }
+           BranchAccount v(l_branchAccountNumber,l_branchId,  l_branchThreshold,l_currentBalance,l_status);
+            AccountList.push_back(v);
+         }
+         EXEC SQL CLOSE mycursor6;
+         EXEC SQL COMMIT ;
+         return AccountList;
+      }
+}
+
+ 
+
+
+vector<Employee> Bank::ViewAllemployees()
+{
+    EXEC SQL BEGIN DECLARE SECTION;
+
+    long int h_employeeId;
+    char h_employeeName[30];
+    char h_employeeDOB[20];
+    char h_employeeGender;
+    char h_employeeAddress[30];
+    char h_employeeDesignation[30];
+    int h_employeeStatus;
+
+    EXEC SQL END DECLARE SECTION;
+
+    vector<Employee> employee_records;
+    EXEC SQL DECLARE mycursor3 CURSOR for SELECT * FROM employee WHERE ESTATUS=1;
+    EXEC SQL OPEN mycursor3;
+    if(sqlca.sqlcode <0)
+    {
+        EXEC SQL CLOSE mycursor3;
+        EXEC SQL COMMIT ;
+        return employee_records ;
+    }
+    if(sqlca.sqlcode!=0)
+    {
+       EXEC SQL CLOSE mycursor3;
+       EXEC SQL COMMIT ;
+       return employee_records;
+
+    }
+    else
+    {
+       for(;;)
+       {
+
+            char l_employeeName[30];
+            char l_employeeDOB[20];
+
+            char l_employeeAddress[30];
+            char l_employeeDesignation[30];
+
+
+
+            EXEC SQL WHENEVER NOT FOUND DO break;
+            EXEC SQL FETCH mycursor3 INTO :h_employeeId, :h_employeeName, :h_employeeGender, :h_employeeAddress, :h_employeeDesignation, :h_employeeStatus, :h_employeeDOB ;
+              EXEC SQL COMMIT;
+            strcpy(l_employeeName,h_employeeName);
+            strcpy(l_employeeAddress,h_employeeAddress);
+            strcpy(l_employeeDesignation,h_employeeDesignation);
+            strcpy(l_employeeDOB,h_employeeDOB);
+
+
+            if(sqlca.sqlcode<0)
+            {
+                 EXEC SQL CLOSE mycursor3;
+                 EXEC SQL COMMIT ;
+                 return employee_records;
+            }
+            Employee v(h_employeeId, l_employeeName, l_employeeDOB, h_employeeGender, l_employeeAddress, l_employeeDesignation,1);
+            employee_records.push_back(v);
+         }
+         EXEC SQL CLOSE mycursor3;
+         EXEC SQL COMMIT ;
+         return employee_records;
+      }
+}
+
+
+
+vector<ATM> Bank::ViewAllAtm()
+{
+    EXEC SQL BEGIN DECLARE SECTION;
+
+      long int h_atmID;
+      char h_atmlocation[40];
+      int h_atmbalance;
+      char h_atmregion[40];
+      int h_atmthresholdValue;
+      char h_atmstatus[9];
+
+    EXEC SQL END DECLARE SECTION;
+
+    vector<ATM> Atm_records; 
+    EXEC SQL CONNECT:"user11@tcsghy" identified by:"tcsghy";
+    EXEC SQL DECLARE mycursor13 CURSOR for SELECT atmid,location,balance,region,thresholdvalue,status from atm ;
+    EXEC SQL OPEN mycursor13;
+    if(sqlca.sqlcode <0)
+    {
+        EXEC SQL CLOSE mycursor13;
+        EXEC SQL COMMIT ;
+        return Atm_records ;
+    }
+    if(sqlca.sqlcode!=0)
+    {
+       EXEC SQL CLOSE mycursor13;
+       EXEC SQL COMMIT ;
+       return Atm_records;
+
+    }
+    else
+    {
+       for(;;)
+       {
+
+             h_atmID=0;
+      strcpy(h_atmlocation," ");
+       h_atmbalance=0;
+      strcpy(h_atmregion," ");
+      h_atmthresholdValue=0;
+      strcpy(h_atmstatus," ");
+
+
+
+            EXEC SQL WHENEVER NOT FOUND DO break;
+            EXEC SQL FETCH mycursor13 INTO :h_atmID, :h_atmlocation, :h_atmbalance, :h_atmregion, :h_atmthresholdValue, :h_atmstatus;
+            
+            EXEC SQL COMMIT;
+           
+            if(sqlca.sqlcode<0)
+            {
+                 EXEC SQL CLOSE mycursor13;
+                 EXEC SQL COMMIT ;
+                 return Atm_records;
+            }
+            ATM v(h_atmID, h_atmlocation, h_atmbalance, h_atmregion, h_atmthresholdValue, h_atmstatus);
+            Atm_records.push_back(v);
+         }
+         EXEC SQL CLOSE mycursor13;
+         EXEC SQL COMMIT ;
+         return Atm_records;
+      }
+}
+
+//---------------------------------------------------
+vector<Employee> Bank::ViewDeactivatedEmployees()
+{
+    EXEC SQL BEGIN DECLARE SECTION;
+
+    long int h_employeeId;
+    char h_employeeName[30];
+    char h_employeeDOB[20];
+    char h_employeeGender;
+    char h_employeeAddress[30];
+    char h_employeeDesignation[30];
+    int h_employeeStatus;
+
+    EXEC SQL END DECLARE SECTION;
+
+    vector<Employee> DeactivatedEmployee_records;
+    EXEC SQL DECLARE mycursor4 CURSOR for SELECT * FROM employee WHERE ESTATUS=0;
+    EXEC SQL OPEN mycursor4;
+    if(sqlca.sqlcode <0)
+    {
+        EXEC SQL CLOSE mycursor4;
+        EXEC SQL COMMIT ;
+        return DeactivatedEmployee_records ;
+    }
+    if(sqlca.sqlcode!=0)
+    {
+       EXEC SQL CLOSE mycursor4;
+       EXEC SQL COMMIT ;
+       return DeactivatedEmployee_records;
+
+    }
+    else
+    {
+       for(;;)
+       {
+
+            char l_employeeName[30];
+            char l_employeeDOB[20];
+
+            char l_employeeAddress[30];
+            char l_employeeDesignation[30];
+
+
+
+            EXEC SQL WHENEVER NOT FOUND DO break;
+            EXEC SQL FETCH mycursor4 INTO :h_employeeId, :h_employeeName, :h_employeeGender, :h_employeeAddress, :h_employeeDesignation, :h_employeeStatus, :h_employeeDOB ;
+              EXEC SQL COMMIT;
+            strcpy(l_employeeName,h_employeeName);
+            strcpy(l_employeeAddress,h_employeeAddress);
+            strcpy(l_employeeDesignation,h_employeeDesignation);
+            strcpy(l_employeeDOB,h_employeeDOB);
+
+
+            if(sqlca.sqlcode<0)
+            {
+                 EXEC SQL CLOSE mycursor4;
+                 EXEC SQL COMMIT ;
+                 return DeactivatedEmployee_records;
+            }
+            Employee v(h_employeeId, l_employeeName, l_employeeDOB, h_employeeGender, l_employeeAddress, l_employeeDesignation,0);
+            DeactivatedEmployee_records.push_back(v);
+         }
+         EXEC SQL CLOSE mycursor4;
+         EXEC SQL COMMIT ;
+         return DeactivatedEmployee_records;
+      }
+}
+
+vector<Branch>Bank::ViewAllBranches()
+{
+    EXEC SQL BEGIN DECLARE SECTION;
+
+char h_branchLocation[31];
+char h_branchRegion[11];
+long int h_accountNo;
+long int h_branchBM;
+long int h_branchID;
+int h_bstatus;
+
+    EXEC SQL END DECLARE SECTION;
+
+    vector<Branch> Branch_records;
+    EXEC SQL DECLARE bcursor CURSOR for SELECT * FROM branch;
+    EXEC SQL OPEN bcursor;
+    if(sqlca.sqlcode <0)
+    {
+        EXEC SQL CLOSE bcursor;
+        EXEC SQL COMMIT ;
+        return Branch_records ;
+    }
+    if(sqlca.sqlcode!=0)
+    {
+       EXEC SQL CLOSE bcursor;
+       EXEC SQL COMMIT ;
+       return Branch_records;
+
+    }
+    else
+    {
+       for(;;)
+       {
+
+            char l_branchLocation[31];
+            char l_branchRegion[11];
+
+
+            EXEC SQL WHENEVER NOT FOUND DO break;
+            EXEC SQL FETCH bcursor INTO :h_branchID, :h_branchLocation, :h_branchRegion, :h_accountNo, :h_branchBM, :h_bstatus;
+              EXEC SQL COMMIT;
+            strcpy(l_branchLocation,h_branchLocation);
+            strcpy(l_branchRegion,h_branchRegion);
+            
+            if(sqlca.sqlcode<0)
+            {
+                 EXEC SQL CLOSE bcursor;
+                 EXEC SQL COMMIT ;
+                 return Branch_records;
+            }
+long int l_branchID=h_branchID;
+            Branch b(l_branchID, l_branchLocation, l_branchRegion, h_accountNo, h_branchBM, 1);
+            Branch_records.push_back(b);
+         }
+         EXEC SQL CLOSE bcursor;
+         EXEC SQL COMMIT ;
+         return Branch_records;
+      }
+}

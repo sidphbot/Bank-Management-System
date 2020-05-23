@@ -1,0 +1,16 @@
+347	INTO account values(accountno.currval,'savings',:h_CustID,:h_minbalance,1);
+116	INTO atm VALUES (ATM_ID.nextval,:h_atmLocation,:h_atmBalance,:h_atmRegion,100000,'active');
+525	INTO BILLTRANSACTION VALUES(:h_tid,:h_BillId);
+522	INTO BILL VALUES(:h_BillId,:h_accountno,'Water',:h_Amount,SYSDATE,BILLREFID.NEXTVAL);
+660	INTO branchAccount VALUES(AccountNumber.nextval,:h_branchId,:h_branchThreshold,:h_currentBalance,1);
+1837	INTO Branch VALUES(branchid.NextVal, :h_branchLocation, :h_branchRegion, 0, :h_branchBM, 1);
+1178	INTO CREQUEST VALUES(requestid.NextVal,:h_CustomerID,:h_type); 
+382	INTO currentaccount values(accountno.nextval,:h_balance,200);
+1690	INTO CUSTOMER VALUES(SEQ_CUSTOMERID.NEXTVAL,:h_Name,:h_dob,:h_Gender,:h_Address,:h_Status,'Active');
+2068	INTO employee VALUES(employeeid.NextVal, :h_employeeName, :h_employeeGender, :h_employeeAddress, :h_employeeDesignation, :h_employeeStatus, to_date(:h_employeeDOB,'dd-mm-yyyy'));
+416	INTO fixedaccount values(accountno.nextval,:h_depositAmount,:h_depositYears,:h_maturityAmount,sysdate);
+2081	INTO login VALUES(:h_employeeId, :h_newpassword, :h_seqans1, :h_seqans2);
+363	INTO NonsalariedAccount values(accountno.nextval,:h_minbalance);
+1419	INTO REQUEST VALUES(requestid.NextVal,:h_accountno,:h_CharCheques,SYSDATE);
+346	INTO salariedAccount values(accountno.nextval,:h_minbalance);
+41	INTO TRANSACTION VALUES(transactionid.NextVal,:h_accountno,SYSDATE,:h_type,:h_amount);

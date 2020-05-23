@@ -1,0 +1,175 @@
+#include "../Include/BranchAccountModel.h"
+
+#include</opt/oracle/clinet64/instantclient_19_5/sdk/include/sqlca.h>
+long int BranchAccountModel::addBranchAccount(BranchAccount &p_BranchAccount)
+{
+   EXEC SQL BEGIN DECLARE SECTION;
+   long int h_branchId;
+   double h_branchThreshold;
+   double h_currentBalance;
+   long int h_accountNumber; 
+   EXEC SQL END DECLARE SECTION;
+   h_branchId=p_BranchAccount.getBranchID();
+   //cout<<"Branch ID = "<<h_branchId;
+   h_branchThreshold=p_BranchAccount.getBranchThreshold();
+   //cout<<"Treshold = "<<h_branchThreshold;
+   h_currentBalance=p_BranchAccount.getCurrentBalance();
+   //cout<<"Balance = "<<h_currentBalance;
+   //EXEC SQL INSERT INTO branchAccount VALUES(100000, :h_branchId, :h_branchThreshold, :h_currentBalance);
+   EXEC SQL INSERT INTO branchAccount VALUES(AccountNumber.nextval,:h_branchId,:h_branchThreshold,:h_currentBalance,1);
+   //EXEC SQL SELECT AccountNumber.currval INTO :h_accountNumber FROM DUAL;   
+   //long int l_accountNumber=h_accountNumber;
+   EXEC SQL COMMIT;
+   if(!sqlca.sqlcode)
+   {
+   EXEC SQL SELECT AccountNumber.CurrVal INTO :h_accountNumber FROM DUAL;
+   EXEC SQL COMMIT;
+   long int l_accountNumber = h_accountNumber; 
+   return l_accountNumber;
+   EXEC SQL COMMIT; 
+   }
+   else
+   return 0;
+}
+
+
+BranchAccount BranchAccountModel::viewBranchAccount(long int p_branchAccountNumber)
+{
+EXEC SQL BEGIN DECLARE SECTION;
+
+long int h_branchAccountNumber;
+long int h_branchId;
+double h_branchThreshold;
+double h_currentBalance;
+
+EXEC SQL END DECLARE SECTION;
+h_branchAccountNumber = p_branchAccountNumber;
+
+EXEC SQL SELECT   branchid, thresholdValue, balance INTO  :h_branchId, :h_branchThreshold, :h_currentBalance  FROM branchAccount WHERE accountNo =:h_branchAccountNumber;
+
+BranchAccount l_tempBranchAccount(h_branchAccountNumber, h_branchId, h_branchThreshold, h_currentBalance);
+
+return l_tempBranchAccount;
+
+
+}
+
+
+int BranchAccountModel::findBranchAccount(long int p_branchAccountNumber)
+{
+   EXEC SQL BEGIN DECLARE SECTION;
+   long int h_branchAccountNumber;
+   int h_count = 0;
+   EXEC SQL END DECLARE SECTION;
+   h_branchAccountNumber = p_branchAccountNumber;
+   EXEC SQL SELECT count(1) INTO :h_count FROM branchAccount WHERE accountNo =:h_branchAccountNumber AND status=1;
+   int l_count = h_count;
+   return l_count;
+
+}
+
+int BranchAccountModel::deleteBranchAccount(long int p_branchAccountNumber)
+{
+EXEC SQL BEGIN DECLARE SECTION;
+
+long int h_branchAccountNumber;
+
+EXEC SQL END DECLARE SECTION;
+
+h_branchAccountNumber=p_branchAccountNumber;
+EXEC SQL UPDATE branchAccount SET status = 0 WHERE accountNo =:h_branchAccountNumber;
+if(sqlca.sqlcode==0)
+   {
+   EXEC SQL COMMIT;
+
+   return 1;
+   }
+else
+return 0;
+
+}
+
+
+int BranchAccountModel::updateBranchID(BranchAccount &p_branchAccount)
+{
+   EXEC SQL BEGIN DECLARE SECTION;
+   long h_branchAccountNumber;
+   long h_branchId;
+   EXEC SQL END DECLARE SECTION;
+   h_branchAccountNumber=p_branchAccount.getBranchAccountNo();
+   h_branchId=p_branchAccount.getBranchID();
+   EXEC SQL UPDATE branchaccount set branchid=:h_branchId where  ACCOUNTNO=:h_branchAccountNumber;
+   EXEC SQL COMMIT;
+   if(!sqlca.sqlcode)
+   {
+      return 1;
+   }
+   else
+   {
+      return 0;
+   }
+}
+
+
+int BranchAccountModel::updateBranchThreshold(BranchAccount &p_branchAccount)
+{
+   EXEC SQL BEGIN DECLARE SECTION;
+   long h_branchAccountNumber;
+   long h_branchThreshold;
+   EXEC SQL END DECLARE SECTION;
+   h_branchAccountNumber=p_branchAccount.getBranchAccountNo();
+   h_branchThreshold=p_branchAccount.getBranchThreshold();
+cout<<"thr = "<<h_branchThreshold<<"   acc : "<<h_branchAccountNumber;   
+EXEC SQL UPDATE branchaccount set  THRESHOLDVALUE=:h_branchThreshold where  ACCOUNTNO=:h_branchAccountNumber;
+cout<<" sqlca : "<<sqlca.sqlcode;  
+EXEC SQL COMMIT;
+   if(!sqlca.sqlcode)
+   { 
+      return 1;
+   }
+   else
+   {
+      return 0;
+   }
+}
+
+int BranchAccountModel::updateCurrentBalance(BranchAccount &p_branchAccount)
+{
+   EXEC SQL BEGIN DECLARE SECTION;
+   long h_branchAccountNumber;
+   long h_currentBalance;
+   EXEC SQL END DECLARE SECTION;
+   h_branchAccountNumber=p_branchAccount.getBranchAccountNo();
+   h_currentBalance=p_branchAccount.getCurrentBalance();
+   EXEC SQL UPDATE branchaccount set balance=:h_currentBalance where  ACCOUNTNO=:h_branchAccountNumber;
+   EXEC SQL COMMIT;
+   if(!sqlca.sqlcode)
+   {
+      return 1;
+   }
+   else
+   {
+      return 0;
+   }
+}
+
+
+
+void BranchAccountModel::dbConnect()
+
+{
+   EXEC SQL BEGIN DECLARE SECTION;
+   char h_hostName[20]="BMS@XE";
+   char h_password[10]="abc123";
+   EXEC SQL END DECLARE SECTION;
+   EXEC SQL CONNECT :h_hostName IDENTIFIED BY :h_password;
+}
+
+
+void BranchAccountModel::disconnect()
+
+{
+   EXEC SQL COMMIT WORK RELEASE;
+}
+
+
